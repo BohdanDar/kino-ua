@@ -1,20 +1,20 @@
 /* Афіша: вузька колонка карток фільмів, усередині кожної список сеансів як квитки */
 :root{
   --bg:#eef1f5; --card:#ffffff; --ink:#15202b; --mute:#5b6675; --line:#dbe1e8;
-  --blue:#0b5cad; --gold:#f2c230; --past:#8b95a2; --chip:#e2e8f0;
+  --blue:#0b5cad; --gold:#f2c230; --past:#8b95a2; --chip:#e2e8f0; --red:#d6262f;
   --display:"Unbounded","Arial Black",system-ui,sans-serif;
   --body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f141a; --card:#18202a; --ink:#e9eef4; --mute:#9aa6b4; --line:#27313d;
-  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; color-scheme:dark}}
+  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; --red:#ff5a5f; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f141a; --card:#18202a; --ink:#e9eef4; --mute:#9aa6b4; --line:#27313d;
-  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; color-scheme:dark}
+  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; --red:#ff5a5f; color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.wrap{max-width:760px;margin:0 auto;padding-block:max(20px,env(safe-area-inset-top,0px)) 40px;display:flex;flex-direction:column;gap:14px}
+.wrap{position:relative;max-width:760px;margin:0 auto;padding-block:max(20px,env(safe-area-inset-top,0px)) 40px;display:flex;flex-direction:column;gap:14px}
 header{display:flex;flex-direction:column;gap:6px}
 .flag{display:flex;width:34px;height:6px;border-radius:3px;overflow:hidden}
 .flag i{flex:1;background:var(--blue)}.flag i+i{background:var(--gold)}
@@ -45,6 +45,32 @@ h2 a{color:inherit;text-decoration:none}h2 a:hover{text-decoration:underline}
 .buy{grid-column:3;grid-row:1/3;color:var(--blue);font-weight:600;white-space:nowrap}
 a.show:hover .buy{text-decoration:underline}
 .past .time,.past .where,.past .det,.past .buy{color:var(--past)}.past .time{text-decoration:line-through}
+.share{align-self:flex-start;font:inherit;font-size:14px;color:var(--blue);background:none;border:0;padding:8px 0 10px;cursor:pointer}
+.share:hover{text-decoration:underline}
+/* Значок проблем: праворуч від заголовка, однаково на телефоні й компʼютері */
+header{flex-direction:row;align-items:flex-start;justify-content:space-between;gap:12px}
+.head-text{display:flex;flex-direction:column;gap:6px;min-width:0}
+.alert{flex:none;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;
+  background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);font-weight:600;text-decoration:none}
+.alert:hover{background:color-mix(in srgb,var(--red) 20%,transparent)}
+.alert[hidden]{display:none}
+/* Новинки з минулого відкриття */
+#news{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;padding:12px 16px}
+#news[hidden]{display:none}
+#news p{margin:0}
+#news button{font:inherit;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+.tag{display:inline-block;vertical-align:3px;margin-left:8px;font:600 12px/1 var(--body);padding:4px 8px;border-radius:999px;background:var(--gold);color:#15202b}
+#status,#home{display:flex;flex-direction:column;gap:14px}
+#home[hidden]{display:none}
+#status[hidden]{display:none}
+.back{color:var(--blue);text-decoration:none;font-weight:600}
+.problem{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:12px;padding:14px 16px}
+.problem.warn{border-left-color:var(--gold)}
+.problem h3{font:600 16px/1.3 var(--body);margin:0 0 4px}
+.problem p{margin:4px 0 0}
+.problem .pl{color:var(--mute);font-size:14px}
+.problem code{font-size:13px;background:var(--chip);padding:1px 5px;border-radius:4px}
 .empty,.err,footer{color:var(--mute);font-size:14px;margin:0}
 .empty button{font:inherit;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
 .err{border-left:3px solid var(--gold);padding-left:10px}
+.err a{color:var(--blue)}
