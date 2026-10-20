@@ -305,8 +305,8 @@ function card(f, today, multiDay) {
   const meta = filmMeta(f);
   const uk = f.title_uk && f.title_uk.toLowerCase() !== f.title.toLowerCase() ? `<p class="uk">${esc(f.title_uk)}</p>` : "";
   const rates = ratings(f);
-  return `<article class="film">${actions(f)}<h2>${title}</h2>${uk}` +
-    (meta || rates ? `<div class="meta">${rates}${meta ? `<span>${esc(meta)}</span>` : ""}</div>` : "") +
+  return `<article class="film${NEWS.keys.has(f.key) ? " new" : ""}">${actions(f)}<h2>${title}</h2>${uk}` +
+    `<div class="meta">${rates}${meta ? `<span>${esc(meta)}</span>` : ""}</div>` +
     `<p class="syn${f.translated ? "" : " pl"}">${esc(f.synopsis || "Опису поки немає.")}</p>` +
     `<div class="shows">${rows.join("")}</div></article>`;
 }
@@ -314,20 +314,18 @@ function card(f, today, multiDay) {
 const SHARE_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 const YT_ICON = '<svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>';
 
-// Рейтинги перед жанрами; посилання ведуть на сторінки рейтингів
+// Рейтинги перед жанрами: завжди обидва, без оцінки прочерк; посилання ведуть на сайти рейтингів
 function ratings(f) {
   const imdb = /^tt\d+$/.test(f.imdb || "") ? f.imdb : "";
-  const rates = [];
-  if (imdb && f.imdb_rating) {
-    rates.push(`<a class="rate imdb" href="https://www.imdb.com/title/${imdb}/" target="_blank" rel="noopener noreferrer" ` +
-      `title="Рейтинг IMDb"><b>IMDb</b>${esc(f.imdb_rating)}</a>`);
-  }
-  if (f.rt) {
-    const q = encodeURIComponent(f.original || f.title);
-    rates.push(`<a class="rate rt" href="https://www.rottentomatoes.com/search?search=${q}" target="_blank" rel="noopener noreferrer" ` +
-      `title="Rotten Tomatoes: частка позитивних рецензій критиків"><span aria-hidden="true">🍅</span>${esc(f.rt)}</a>`);
-  }
-  return rates.join("");
+  const q = encodeURIComponent(f.original || f.title);
+  const badge = (cls, href, title, logo, value) =>
+    `<a class="rate ${cls}${value ? "" : " none"}" href="${href}" target="_blank" rel="noopener noreferrer" title="${title}">` +
+    `${logo}<span>${value ? esc(value) : "—"}</span></a>`;
+  return badge("imdb", imdb ? `https://www.imdb.com/title/${imdb}/` : `https://www.imdb.com/find/?q=${q}`,
+      f.imdb_rating ? "Рейтинг IMDb (оцінки глядачів)" : "Рейтингу IMDb ще немає", "<b>IMDb</b>", f.imdb_rating) +
+    badge("rt", `https://www.rottentomatoes.com/search?search=${q}`,
+      f.rt ? "Rotten Tomatoes: частка позитивних рецензій критиків" : "Оцінки Rotten Tomatoes ще немає",
+      '<span aria-hidden="true">🍅</span>', f.rt);
 }
 
 // Правий верхній кут картки: трейлер українською й «Поділитися»
@@ -463,6 +461,8 @@ function demoData() {
   const f = DATA.films[0];
   if (f) Object.assign(f, { translated: false,
     synopsis: "Przykładowy opis po polsku: tak wygląda film, dla którego nie ma jeszcze ukraińskiego tłumaczenia." });
+  // другий фільм без оцінок: так видно прочерки біля IMDb і Rotten Tomatoes
+  if (DATA.films[1]) Object.assign(DATA.films[1], { imdb_rating: "", rt: "" });
   DATA.errors = { [today]: ["Helios: HTTP Error 503: Service Unavailable", "Multikino: timed out, показано дані з 10:17"],
     [addDays(today, 1)]: ["Helios: HTTP Error 503: Service Unavailable"] };
   DATA.generated_at = new Date(Date.now() - 7 * 36e5).toISOString();
@@ -470,7 +470,7 @@ function demoData() {
   const bar = document.createElement("p");
   bar.id = "demo-bar";
   bar.className = "err";
-  bar.innerHTML = 'Демо-режим: новинки й проблеми тут вигадані. <a href="./">Вийти з демо</a>';
+  bar.innerHTML = 'Демо-режим: новинки, проблеми й прочерки рейтингів тут вигадані. <a href="./">Вийти з демо</a>';
   document.querySelector(".wrap").prepend(bar);
 }
 

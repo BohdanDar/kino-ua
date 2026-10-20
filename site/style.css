@@ -2,15 +2,16 @@
 :root{
   --bg:#eef1f5; --card:#ffffff; --ink:#15202b; --mute:#5b6675; --line:#dbe1e8;
   --blue:#0b5cad; --gold:#f2c230; --past:#8b95a2; --chip:#e2e8f0; --red:#d6262f;
+  --sky:#3aa0f0; --sky-soft:#dcefff; --sky-ink:#0a4f8f;
   --display:"Unbounded","Arial Black",system-ui,sans-serif;
   --body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f141a; --card:#18202a; --ink:#e9eef4; --mute:#9aa6b4; --line:#27313d;
-  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; --red:#ff5a5f; color-scheme:dark}}
+  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; --red:#ff5a5f; --sky:#5cb4ff; --sky-soft:#173a5c; --sky-ink:#cfe7ff; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f141a; --card:#18202a; --ink:#e9eef4; --mute:#9aa6b4; --line:#27313d;
-  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; --red:#ff5a5f; color-scheme:dark}
+  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; --red:#ff5a5f; --sky:#5cb4ff; --sky-soft:#173a5c; --sky-ink:#cfe7ff; color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -54,6 +55,7 @@ a.show:hover .buy{text-decoration:underline}
 .rate b{font:800 11px/1 var(--body);background:#f5c518;color:#000;padding:4px 5px;border-radius:4px;letter-spacing:-.02em}
 .rate.rt{padding-left:6px}
 .rate:hover{text-decoration:underline}
+.rate.none span{color:var(--mute)}.rate.none b{opacity:.55}
 .icon{flex:none;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;
   color:var(--blue);background:none;border:0;padding:0;cursor:pointer}
 .icon:hover{background:var(--chip)}
@@ -76,11 +78,13 @@ header{flex-direction:row;align-items:flex-start;justify-content:space-between;g
 .alert:hover{background:color-mix(in srgb,var(--red) 20%,transparent)}
 .alert[hidden]{display:none}
 /* Новинки з минулого відкриття */
-#news{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;padding:12px 16px}
+#news{background:var(--sky-soft);border:1px solid var(--line);border-left:4px solid var(--sky);border-radius:12px;padding:12px 16px}
 #news[hidden]{display:none}
 #news p{margin:0}
-#news button{font:inherit;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
-.tag{display:inline-block;vertical-align:3px;margin-left:8px;font:600 12px/1 var(--body);padding:4px 8px;border-radius:999px;background:var(--gold);color:#15202b}
+#news button{font:inherit;color:var(--sky-ink);font-weight:600;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+.tag{display:inline-block;vertical-align:3px;margin-left:8px;font:600 12px/1 var(--body);padding:4px 8px;border-radius:999px;background:var(--sky);color:#062a4d}
+/* Новинка: блакитна смуга ліворуч картки (жовтий лишається для попереджень) */
+.film.new{border-left:4px solid var(--sky)}
 #status,#home{display:flex;flex-direction:column;gap:14px}
 #home[hidden]{display:none}
 #status[hidden]{display:none}
