@@ -397,7 +397,8 @@ function render() {
   document.getElementById("sub").textContent =
     [label && label[0].toUpperCase() + label.slice(1), terms.length ? `«${terms.join(" ")}»` : "", summary].filter(Boolean).join(" · ");
   SHOWN_SEARCH = { ranges, terms, dated: explicit || !terms.length };
-  document.getElementById("share-all").hidden = !films.some(f => f.shows.some(s => !s.started));
+  // один фільм ділиться кнопкою в його картці, тож список потрібен лише від двох
+  document.getElementById("share-all").hidden = films.filter(f => f.shows.some(s => !s.started)).length < 2;
   let html = (note ? `<p class="empty">${esc(note)}</p>` : "") + films.map(f => card(f, now.date, multiDay)).join("");
   if (!films.length) {
     const next = [...new Set(DATA.films.flatMap(f => f.shows.map(s => s.date)))].filter(d => d >= ranges[0][0]).sort().slice(0, 4);
