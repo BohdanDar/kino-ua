@@ -43,6 +43,7 @@ jobs:
         run: |
           node --check site/app.js
           node --check site/sw.js
+          node tests/search.test.js
           python3 -m json.tool site/manifest.webmanifest > /dev/null
 
       - name: Зібрати сеанси на 14 днів

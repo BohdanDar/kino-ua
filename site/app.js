@@ -75,10 +75,16 @@ function pointDates(m, today) {
 
 function parseQuery(raw, today) {
   let q = raw.toLowerCase().replace(/[ʼ'’`]/g, "").replace(/ё/g, "е").trim();
+  // Число, що разом із сусіднім словом є частиною назви фільму («28 років потому», «28 lat»), не дата:
+  // ховаємо його цифри від розбору дат і часу, а в кінці повертаємо в слова пошуку
+  const titles = DATA ? DATA.films.map(f => norm([f.title, f.title_uk, f.original].join(" | "))).join(" | ") : "";
+  q = q.replace(/(?<![\p{L}\d])\d+\s+\p{L}+|\p{L}+\s+\d+(?![\p{L}\d])/gu,
+    m => titles.includes(norm(m)) ? m.replace(/\d/g, d => String.fromCharCode(0xE000 + +d)) : m);
   const ranges = [];
   // слова-періоди
   // ключ: регулярний вираз; «вихідн»/«тижд» з будь-яким закінченням, «усі» лише цілим словом
-  const words = { "наступн[а-яіїєґ]*\\s+тиж[дн][а-яіїєґ]*": () => {
+  const words = { "(\\d+)\\s+тиж[дн][а-яіїєґ]*": n => [today, addDays(today, 7 * Math.max(1, +n) - 1)],  // «2 тижні»
+    "наступн[а-яіїєґ]*\\s+тиж[дн][а-яіїєґ]*": () => {
       const mon = addDays(today, (8 - weekday(today)) % 7 || 7);
       return [mon, addDays(mon, 6)];
     },
@@ -92,7 +98,7 @@ function parseQuery(raw, today) {
     "усі|все|всі|увесь|весь": () => [today, lastDay()],
   };
   for (const [re, fn] of Object.entries(words)) {
-    q = q.replace(new RegExp(`(?:^|\\s)(?:${re})(?=\\s|$)`, "g"), () => { ranges.push(fn()); return " "; });
+    q = q.replace(new RegExp(`(?:^|\\s)(?:${re})(?=\\s|$)`, "g"), (_, n) => { ranges.push(fn(n)); return " "; });
   }
   // час: «19:50» шукає сеанс саме тоді, «після 18» або «після 18:30» усі пізніші
   let after = null;
@@ -156,8 +162,16 @@ function parseQuery(raw, today) {
     if (!d) bad.push(a.m[0].trim());
     rest = rest.slice(0, a.at) + " ".repeat(a.end - a.at) + rest.slice(a.end);
   }
-  const terms = rest.split(/[\s,;:]+/).filter(w => /[\p{L}\d]/u.test(w) && !STOP.has(w) && !UK_MONTHS.includes(w) && !/^наступн/.test(w));
-  return { ranges, terms, times, after, bad };
+  const terms = rest.split(/[\s,;:]+/).filter(w => /[\p{L}\d\uE000-\uE009]/u.test(w) && !STOP.has(w) && !UK_MONTHS.includes(w) && !/^наступн/.test(w))
+    .map(w => w.replace(/[\uE000-\uE009]/g, c => String(c.charCodeAt(0) - 0xE000)));
+  // відрізки, що перекриваються («усі» і «2 тижні»), зливаємо в один
+  ranges.sort((a, b) => a[0].localeCompare(b[0]));
+  const merged = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r[0] <= last[1]) { if (r[1] > last[1]) last[1] = r[1]; } else merged.push([...r]);
+  }
+  return { ranges: merged, terms, times, after, bad };
 }
 
 // ---------------------------------------------------------------- пошук

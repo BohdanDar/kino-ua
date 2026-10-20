@@ -1,0 +1,251 @@
+{
+ "generated": "2026-10-20T08:00",
+ "generated_at": "2026-10-20T06:00:00+00:00",
+ "from": "2026-10-20",
+ "days": 14,
+ "cinemas": {
+  "Cinema City Wroclavia": "Wroclavia",
+  "Multikino Pasaż Grunwaldzki": "Pasaż Grunwaldzki",
+  "Helios Aleja Bielany": "Aleja Bielany",
+  "Helios Galeria Magnolia": "Galeria Magnolia",
+  "DCF": "вул. Świdnicka"
+ },
+ "films": [
+  {
+   "key": "verity",
+   "title": "Verity. Coraz większy mrok",
+   "title_uk": "Веріті",
+   "original": "Verity",
+   "genres": [
+    "трилер"
+   ],
+   "shows": [
+    {
+     "date": "2026-10-20",
+     "time": "19:50",
+     "cinema": "Cinema City Wroclavia",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    },
+    {
+     "date": "2026-10-21",
+     "time": "18:10",
+     "cinema": "Cinema City Wroclavia",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    },
+    {
+     "date": "2026-10-25",
+     "time": "17:00",
+     "cinema": "Cinema City Wroclavia",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    }
+   ],
+   "year": 2026,
+   "minutes": 100,
+   "poster": "",
+   "synopsis": "Опис.",
+   "translated": true,
+   "first_seen": null,
+   "trailer": "",
+   "imdb": "",
+   "imdb_rating": "",
+   "rt": ""
+  },
+  {
+   "key": "residentevil",
+   "title": "Resident Evil",
+   "title_uk": "Resident Evil: Оселя Зла",
+   "original": "Resident Evil",
+   "genres": [
+    "жахи"
+   ],
+   "shows": [
+    {
+     "date": "2026-10-20",
+     "time": "20:50",
+     "cinema": "Multikino Pasaż Grunwaldzki",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    },
+    {
+     "date": "2026-10-24",
+     "time": "22:00",
+     "cinema": "Multikino Pasaż Grunwaldzki",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    },
+    {
+     "date": "2026-10-25",
+     "time": "22:00",
+     "cinema": "Multikino Pasaż Grunwaldzki",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    }
+   ],
+   "year": 2026,
+   "minutes": 100,
+   "poster": "",
+   "synopsis": "Опис.",
+   "translated": true,
+   "first_seen": null,
+   "trailer": "",
+   "imdb": "",
+   "imdb_rating": "",
+   "rt": ""
+  },
+  {
+   "key": "krashanka20kvantovyiparadoks",
+   "title": "Krashanka 2.0. Kvantovyi paradoks - UA",
+   "title_uk": "Крашанка 2.0. Квантовий парадокс",
+   "original": "",
+   "genres": [
+    "анімація"
+   ],
+   "shows": [
+    {
+     "date": "2026-10-25",
+     "time": "12:00",
+     "cinema": "Helios Aleja Bielany",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    }
+   ],
+   "year": 2026,
+   "minutes": 100,
+   "poster": "",
+   "synopsis": "Опис.",
+   "translated": true,
+   "first_seen": null,
+   "trailer": "",
+   "imdb": "",
+   "imdb_rating": "",
+   "rt": ""
+  },
+  {
+   "key": "1917",
+   "title": "1917",
+   "title_uk": "1917",
+   "original": "1917",
+   "genres": [
+    "воєнний"
+   ],
+   "shows": [
+    {
+     "date": "2026-10-23",
+     "time": "20:30",
+     "cinema": "Helios Galeria Magnolia",
+     "hall": "Sala 1",
+     "version": "IMAX 3D, дубляж UA",
+     "link": "https://example.org/bilety"
+    }
+   ],
+   "year": 2026,
+   "minutes": 100,
+   "poster": "",
+   "synopsis": "Опис.",
+   "translated": true,
+   "first_seen": null,
+   "trailer": "",
+   "imdb": "",
+   "imdb_rating": "",
+   "rt": ""
+  },
+  {
+   "key": "28latpozniej",
+   "title": "28 lat później",
+   "title_uk": "28 років потому",
+   "original": "28 Years Later",
+   "genres": [
+    "трилер"
+   ],
+   "shows": [
+    {
+     "date": "2026-10-27",
+     "time": "20:00",
+     "cinema": "Helios Aleja Bielany",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    }
+   ],
+   "year": 2026,
+   "minutes": 100,
+   "poster": "",
+   "synopsis": "Опис.",
+   "translated": true,
+   "first_seen": null,
+   "trailer": "",
+   "imdb": "",
+   "imdb_rating": "",
+   "rt": ""
+  },
+  {
+   "key": "clayface",
+   "title": "Clayface",
+   "title_uk": "Глиноликий",
+   "original": "Clayface",
+   "genres": [
+    "фантастика"
+   ],
+   "shows": [
+    {
+     "date": "2026-10-30",
+     "time": "18:30",
+     "cinema": "Cinema City Wroclavia",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    }
+   ],
+   "year": 2026,
+   "minutes": 100,
+   "poster": "",
+   "synopsis": "Опис.",
+   "translated": true,
+   "first_seen": null,
+   "trailer": "",
+   "imdb": "",
+   "imdb_rating": "",
+   "rt": ""
+  },
+  {
+   "key": "vsesvit",
+   "title": "Wszechświat Marvela",
+   "title_uk": "Всесвіт Марвел",
+   "original": "Marvel Universe",
+   "genres": [
+    "документальний"
+   ],
+   "shows": [
+    {
+     "date": "2026-10-26",
+     "time": "19:00",
+     "cinema": "DCF",
+     "hall": "Sala 1",
+     "version": "2D, дубляж UA",
+     "link": "https://example.org/bilety"
+    }
+   ],
+   "year": 2026,
+   "minutes": 100,
+   "poster": "",
+   "synopsis": "Опис.",
+   "translated": true,
+   "first_seen": null,
+   "trailer": "",
+   "imdb": "",
+   "imdb_rating": "",
+   "rt": ""
+  }
+ ],
+ "errors": {}
+}
