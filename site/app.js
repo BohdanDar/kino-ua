@@ -611,13 +611,15 @@ function keepFocus(fn) {
   fn();
   if (sel) document.querySelector(`#out ${sel}`)?.focus();
 }
+// Розклад робот оновлює раз на 2 години, тож повторно качаємо його не частіше, ніж раз на 10 хвилин
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && DATA) refresh(); });
+let FETCHED = Date.now();
 async function refresh() {
-  try {
+  if (Date.now() - FETCHED > 10 * 60 * 1000) try {
     const r = await fetch("data.json", { cache: "no-cache" });
-    if (r.ok) { DATA = await r.json(); if (DEMO) demoData(); footer(); }
+    if (r.ok) { DATA = await r.json(); FETCHED = Date.now(); if (DEMO) demoData(); footer(); }
   } catch (e) { /* офлайн: лишаємо, що є */ }
-  render();
+  keepFocus(render);
   renderStatus();
 }
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
