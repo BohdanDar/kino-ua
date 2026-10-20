@@ -38,6 +38,13 @@ jobs:
           key: kino-cache-${{ github.run_id }}
           restore-keys: kino-cache-
 
+      # помилка в коді застосунку не має потрапити на сайт: тоді запуск зупиняється, а сайт лишається старим
+      - name: Перевірити код застосунку
+        run: |
+          node --check site/app.js
+          node --check site/sw.js
+          python3 -m json.tool site/manifest.webmanifest > /dev/null
+
       - name: Зібрати сеанси на 14 днів
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}

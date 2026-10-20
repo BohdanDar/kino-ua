@@ -21,19 +21,20 @@ FILM_FIELDS = ("key", "title", "title_uk", "original", "year", "minutes", "genre
 
 
 def previous_first_seen():
-    """Коли кожен фільм уперше зʼявився: з уже опублікованого data.json, інакше з кешу робота.
+    """Коли кожен фільм уперше зʼявився: кеш робота (фільми за 60 днів) плюс уже опублікований data.json.
+    Кеш потрібен, щоб фільм, який зник на одне оновлення (кінотеатр не відповідав), не став знову новинкою.
     None, якщо порівнювати нема з чим (тоді новинок не позначаємо, щоб не назвати новим усе)."""
+    with k._cache_lock:
+        known = {key: v[1] for key, v in k._load_cache().get("first_seen", {}).items()}
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     if "/" in repo:
         owner, name = repo.split("/", 1)
         try:
             with urllib.request.urlopen(f"https://{owner.lower()}.github.io/{name}/data.json", timeout=20) as r:
                 prev = json.loads(r.read().decode("utf-8"))
-            return {f["key"]: f.get("first_seen") for f in prev.get("films", [])}
+            known.update({f["key"]: f.get("first_seen") for f in prev.get("films", [])})
         except Exception as e:
-            print(f"Попередній розклад недоступний ({e}), беру дати з кешу", flush=True)
-    with k._cache_lock:
-        known = {key: v[1] for key, v in k._load_cache().get("first_seen", {}).items()}
+            print(f"Попередній розклад недоступний ({e}), беру дати лише з кешу", flush=True)
     return known or None
 
 
