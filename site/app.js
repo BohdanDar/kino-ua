@@ -13,7 +13,7 @@ const STOP = new Set(["з", "із", "від", "по", "до", "у", "в", "на"
 
 let DATA = null;
 let SHOWN = [];  // фільми на екрані: з них беремо сеанси для «Поділитися»
-let SHOWN_LABEL = "";  // підпис дат пошуку («22–24 жовтня») для «Поділитися списком»
+let SHOWN_SEARCH = null;  // дати й слова поточного пошуку для «Поділитися списком»
 let NEWS = { since: null, keys: new Set() };  // фільми, що зʼявилися після минулого відкриття на цьому пристрої
 
 // ---------------------------------------------------------------- дати
@@ -31,8 +31,9 @@ const parseIso = s => new Date(s + "T00:00:00Z");
 const addDays = (s, n) => { const d = parseIso(s); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
 const weekday = s => parseIso(s).getUTCDay();
 
+// Без today лише дата («середа, 21 жовтня»): для тексту, який прочитають пізніше
 function dayLabel(s, today) {
-  const rel = { 0: "сьогодні", 1: "завтра", 2: "післязавтра" }[(parseIso(s) - parseIso(today)) / 864e5];
+  const rel = today && { 0: "сьогодні", 1: "завтра", 2: "післязавтра" }[(parseIso(s) - parseIso(today)) / 864e5];
   const d = parseIso(s);
   const text = `${UK_DAYS[d.getUTCDay()]}, ${d.getUTCDate()} ${UK_MONTHS[d.getUTCMonth()]}`;
   return rel ? `${rel}, ${text}` : text;
@@ -57,7 +58,7 @@ const POINT = new RegExp([
   "(\\d{4})-(\\d{1,2})-(\\d{1,2})",                        // 2026-10-25
   "(\\d{1,2})[./](\\d{1,2})(?:[./](\\d{2,4}))?",           // 25.10, 25/10/2026
   `(\\d{1,2})\\s*(${MONTH_STEMS.join("|")})[а-яіїєґ]*`,     // 25 жовтня
-  "(?<![\\d.])(\\d{1,2})(?![\\d./:a-zа-яіїєґ])",          // 25 (але не 3D і не 4DX)
+  "(?<=^|[\\s,–—-])(\\d{1,2})(?=$|[\\s,–—-])",              // 25 окремим словом (не 3D, не 4DX, не «(2)»)
   "(сьогодні|сегодня|завтра|післязавтра)",
   `(${WEEKDAY_STEMS.map(w => w[0]).join("|")})[а-яіїєґ]*`,
 ].join("|"), "g");
@@ -103,8 +104,14 @@ function parseQuery(raw, today) {
     return " ";
   });
   q = q.replace(/(?<![\d.])(\d{1,2}):(\d{2})(?!\d)/g, (_, h, m) => { times.push(`${h.padStart(2, "0")}:${m}`); return " "; });
-  const pts = [...q.matchAll(POINT)].map(m => ({ m, at: m.index, end: m.index + m[0].length, v: pointDates(m, today) }));
+  const found = [...q.matchAll(POINT)].map(m => ({ m, at: m.index, end: m.index + m[0].length, v: pointDates(m, today) }));
+  const pts = found.filter(p => p.v);
   let rest = q;
+  const bad = [];  // дати, яких немає в календарі («31.02»): пропускаємо з приміткою
+  for (const p of found.filter(p => !p.v)) {
+    bad.push(p.m[0].trim());
+    rest = rest.slice(0, p.at) + " ".repeat(p.end - p.at) + rest.slice(p.end);
+  }
   for (let i = 0; i < pts.length; i++) {
     const a = pts[i], b = pts[i + 1];
     const between = b && q.slice(a.end, b.at).trim();
@@ -135,6 +142,7 @@ function parseQuery(raw, today) {
           : resolveDay(a.v.bare, parseIso(to).getUTCMonth() + 1, parseIso(to).getUTCFullYear(), today))
         : a.v;
       if (from && to) ranges.push(from <= to ? [from, to] : [to, from]);
+      else bad.push(q.slice(a.at, b.end).trim());
       rest = rest.slice(0, a.at) + " ".repeat(b.end - a.at) + rest.slice(b.end);
       i++;
       continue;
@@ -145,10 +153,11 @@ function parseQuery(raw, today) {
     if (d && /(?:^|\s)(?:до|по)\s*$/.test(before)) ranges.push([today, d]);
     else if (d && /(?:^|\s)(?:з|із|від)\s*$/.test(before)) ranges.push([d, d > lastDay() ? d : lastDay()]);
     else if (d) ranges.push([d, d]);
+    if (!d) bad.push(a.m[0].trim());
     rest = rest.slice(0, a.at) + " ".repeat(a.end - a.at) + rest.slice(a.end);
   }
-  const terms = rest.split(/[\s,;:]+/).filter(w => w && !STOP.has(w) && !UK_MONTHS.includes(w) && !/^наступн/.test(w));
-  return { ranges, terms, times, after };
+  const terms = rest.split(/[\s,;:]+/).filter(w => /[\p{L}\d]/u.test(w) && !STOP.has(w) && !UK_MONTHS.includes(w) && !/^наступн/.test(w));
+  return { ranges, terms, times, after, bad };
 }
 
 // ---------------------------------------------------------------- пошук
@@ -161,7 +170,7 @@ const LAT = { а: "a", б: "b", в: "v", г: "h", ґ: "g", д: "d", е: "e", є:
   х: "kh", ц: "ts", ч: "ch", ш: "sh", щ: "shch", ь: "", ю: "iu", я: "ia", ы: "y", э: "e", ъ: "" };
 const lat = s => s.replace(/[а-яіїєґыэъ]/g, c => LAT[c] ?? c);
 // латиниця й кирилиця по-різному передають ті самі звуки: зводимо до спільного «скелета»
-const skel = s => lat(s).replace(/kh|ch/g, "h").replace(/[yj]/g, "i").replace(/w/g, "v").replace(/c/g, "k")
+const skel = s => lat(s).replace(/c(?=[eiy])/g, "s").replace(/kh|ch/g, "h").replace(/[yj]/g, "i").replace(/w/g, "v").replace(/c/g, "k")
   .replace(/x/g, "ks").replace(/(.)\1+/g, "$1");
 
 // Відстань між словами з урахуванням переставлених сусідніх літер («вертіі» → «веріті»)
@@ -188,10 +197,17 @@ function matches(term, text, words) {
   if (words.skel.includes(t)) return true;
   const max = t.length >= 7 ? 2 : t.length >= 4 ? 1 : 0;
   if (!max) return false;
-  return words.list.some(w => distance(t, w.slice(0, t.length), max) <= max ||
-    (w.length !== t.length && distance(t, w, max) <= max));
+  if (words.list.some(w => distance(t, w.slice(0, t.length), max) <= max ||
+    (w.length !== t.length && distance(t, w, max) <= max))) return true;
+  // англійська назва, записана кирилицею на слух («клейфейс» → «clayface»): збігаються приголосні
+  const c = consonants(t);
+  return c.length >= 4 && words.cons.some(w => w === c);
 }
-const wordsOf = text => { const sk = skel(text); return { skel: sk, list: sk.split(/[^a-z0-9]+/).filter(w => w.length >= 3) }; };
+const consonants = w => w.replace(/[aeiou]/g, "");
+const wordsOf = text => {
+  const sk = skel(text), list = sk.split(/[^a-z0-9]+/).filter(w => w.length >= 3);
+  return { skel: sk, list, cons: list.map(consonants) };
+};
 
 function filterShows(ranges, terms, times, after, now) {
   const inRange = d => ranges.some(([a, b]) => a <= d && d <= b);
@@ -228,15 +244,15 @@ function inSchedule(term) {
 
 function search(raw) {
   const now = warsawNow();
-  let { ranges, terms, times, after } = parseQuery(raw, now.date);
+  let { ranges, terms, times, after, bad } = parseQuery(raw, now.date);
   terms = terms.map(norm);
-  let note = "";
+  let note = bad.length ? `Дати ${bad.map(b => `«${b}»`).join(", ")} немає в календарі, тож пропускаю її. ` : "";
   // слово, якого немає в розкладі взагалі («наступна», «ввечері»), не повинно ховати все інше;
   // але якщо запит лише з таких слів, лишаємо «не знайдено»
   const unknown = terms.filter(t => !inSchedule(t));
   if (unknown.length && unknown.length < terms.length + ranges.length + times.length + (after ? 1 : 0)) {
     terms = terms.filter(t => !unknown.includes(t));
-    note = `Не знайшов у розкладі ${unknown.map(t => `«${t}»`).join(", ")}, тож шукаю без ${unknown.length > 1 ? "цих слів" : "цього слова"}.`;
+    note += `Не знайшов у розкладі ${unknown.map(t => `«${t}»`).join(", ")}, тож шукаю без ${unknown.length > 1 ? "цих слів" : "цього слова"}.`;
   }
   const anyFilter = terms.length || times.length || after;
   const explicit = ranges.length > 0;
@@ -252,7 +268,7 @@ function search(raw) {
       films = next;
     }
   }
-  return { films, ranges, terms: [...terms, ...times, ...(after ? [`після ${after}`] : [])], now, note, explicit };
+  return { films, ranges, terms: [...terms, ...times, ...(after ? [`після ${after}`] : [])], now, note: note.trim(), explicit };
 }
 
 // ---------------------------------------------------------------- вивід
@@ -276,6 +292,7 @@ function filmMeta(f) {
 
 function rangeLabel(ranges, today) {
   if (ranges.length !== 1) return "";
+  // today не задано: лише дати, без «сьогодні/завтра»
   const [a, b] = ranges[0];
   if (a === b) return dayLabel(a, today);
   const da = parseIso(a), db = parseIso(b);
@@ -311,21 +328,27 @@ function card(f, today, multiDay) {
     `<div class="shows">${rows.join("")}</div></article>`;
 }
 
-const SHARE_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+// На iPhone, iPad і Mac звичний квадрат зі стрілкою вгору, на Android і Windows три точки з лініями
+const APPLE = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+const SHARE_ICON = APPLE
+  ? '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2"/></svg>'
+  : '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+const BETA = '<span class="beta" title="Бета: ще може бути неточним">бета</span>';
 const YT_ICON = '<svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>';
 
-// Рейтинги перед жанрами: завжди обидва, без оцінки прочерк; посилання ведуть на сайти рейтингів
+// Рейтинги перед жанрами: завжди обидва логотипи, без оцінки лише логотип; посилання ведуть на сайти рейтингів.
+// Rotten Tomatoes і трейлер позначені «бета»: дані з OMDb і пошуку YouTube ще не завжди точні.
 function ratings(f) {
   const imdb = /^tt\d+$/.test(f.imdb || "") ? f.imdb : "";
   const q = encodeURIComponent(f.original || f.title);
-  const badge = (cls, href, title, logo, value) =>
-    `<a class="rate ${cls}${value ? "" : " none"}" href="${href}" target="_blank" rel="noopener noreferrer" title="${title}">` +
-    `${logo}<span>${value ? esc(value) : "—"}</span></a>`;
+  const badge = (cls, href, title, logo, value, beta) =>
+    `<a class="rate ${cls}${value ? "" : " none"}" href="${href}" target="_blank" rel="noopener noreferrer" title="${title}" ` +
+    `aria-label="${title}${value ? `: ${esc(value)}` : ""}">${logo}${value ? `<span>${esc(value)}</span>` : ""}${beta ? BETA : ""}</a>`;
   return badge("imdb", imdb ? `https://www.imdb.com/title/${imdb}/` : `https://www.imdb.com/find/?q=${q}`,
       f.imdb_rating ? "Рейтинг IMDb (оцінки глядачів)" : "Рейтингу IMDb ще немає", "<b>IMDb</b>", f.imdb_rating) +
     badge("rt", `https://www.rottentomatoes.com/search?search=${q}`,
       f.rt ? "Rotten Tomatoes: частка позитивних рецензій критиків" : "Оцінки Rotten Tomatoes ще немає",
-      '<span aria-hidden="true">🍅</span>', f.rt);
+      '<span aria-hidden="true">🍅</span>', f.rt, true);
 }
 
 // Правий верхній кут картки: трейлер українською й «Поділитися»
@@ -333,7 +356,7 @@ function actions(f) {
   const yt = /^[\w-]{11}$/.test(f.trailer || "")
     ? `https://www.youtube.com/watch?v=${f.trailer}`
     : "https://www.youtube.com/results?search_query=" + encodeURIComponent(`${f.title_uk || f.original || f.title} трейлер українською`);
-  return `<div class="acts"><a class="icon" href="${esc(yt)}" target="_blank" rel="noopener noreferrer" aria-label="Трейлер українською на YouTube" title="Трейлер українською">${YT_ICON}</a>` +
+  return `<div class="acts"><a class="icon yt" href="${esc(yt)}" target="_blank" rel="noopener noreferrer" aria-label="Трейлер українською на YouTube (бета)" title="Трейлер українською (бета)">${YT_ICON}${BETA}</a>` +
     `<button class="icon share" data-share="${esc(f.key)}" aria-label="Поділитися фільмом" title="Поділитися">${SHARE_ICON}</button></div>`;
 }
 
@@ -348,12 +371,12 @@ function render() {
   const summary = films.length ? `${plural(films.length, "фільм", "фільми", "фільмів")}, ${plural(nShows, "сеанс", "сеанси", "сеансів")}` : "";
   document.getElementById("sub").textContent =
     [label && label[0].toUpperCase() + label.slice(1), terms.length ? `«${terms.join(" ")}»` : "", summary].filter(Boolean).join(" · ");
-  SHOWN_LABEL = label;
+  SHOWN_SEARCH = { ranges, terms, dated: explicit || !terms.length };
   document.getElementById("share-all").hidden = !films.some(f => f.shows.some(s => !s.started));
   let html = (note ? `<p class="empty">${esc(note)}</p>` : "") + films.map(f => card(f, now.date, multiDay)).join("");
   if (!films.length) {
     const next = [...new Set(DATA.films.flatMap(f => f.shows.map(s => s.date)))].filter(d => d >= ranges[0][0]).sort().slice(0, 4);
-    html = `<p class="empty">Українських сеансів за цим запитом не знайдено.` +
+    html = (note ? `<p class="empty">${esc(note)}</p>` : "") + `<p class="empty">Українських сеансів за цим запитом не знайдено.` +
       (next.length ? ` Найближчі дні з сеансами: ${next.map(d => `<button data-q="${d.slice(8)}.${d.slice(5, 7)}">${esc(dayLabel(d, now.date))}</button>`).join(", ")}.` : "") +
       `</p>`;
   }
@@ -461,7 +484,7 @@ function demoData() {
   const f = DATA.films[0];
   if (f) Object.assign(f, { translated: false,
     synopsis: "Przykładowy opis po polsku: tak wygląda film, dla którego nie ma jeszcze ukraińskiego tłumaczenia." });
-  // другий фільм без оцінок: так видно прочерки біля IMDb і Rotten Tomatoes
+  // другий фільм без оцінок: так видно порожні IMDb і Rotten Tomatoes
   if (DATA.films[1]) Object.assign(DATA.films[1], { imdb_rating: "", rt: "" });
   DATA.errors = { [today]: ["Helios: HTTP Error 503: Service Unavailable", "Multikino: timed out, показано дані з 10:17"],
     [addDays(today, 1)]: ["Helios: HTTP Error 503: Service Unavailable"] };
@@ -470,7 +493,7 @@ function demoData() {
   const bar = document.createElement("p");
   bar.id = "demo-bar";
   bar.className = "err";
-  bar.innerHTML = 'Демо-режим: новинки, проблеми й прочерки рейтингів тут вигадані. <a href="./">Вийти з демо</a>';
+  bar.innerHTML = 'Демо-режим: новинки, проблеми й порожні рейтинги тут вигадані. <a href="./">Вийти з демо</a>';
   document.querySelector(".wrap").prepend(bar);
 }
 
@@ -520,17 +543,26 @@ const appUrl = q => location.origin + location.pathname + (q ? "?q=" + encodeURI
 async function shareFilm(key) {
   const f = SHOWN.find(x => x.key === key);
   if (!f) return;
-  const today = warsawNow().date;
   const lines = [filmName(f), ""];
   for (const s of f.shows.filter(s => !s.started)) {
-    lines.push(`${dayLabel(s.date, today)}, ${s.time}, ${s.cinema}${safeUrl(s.link) ? ": " + s.link : ""}`);
+    lines.push(`${dayLabel(s.date)}, ${s.time}, ${s.cinema}${safeUrl(s.link) ? ": " + s.link : ""}`);
   }
   await share(f.title_uk || f.title, lines.join("\n").trim(), appUrl(f.title_uk || f.title));
 }
 
+// Запит із конкретними датами замість «завтра» чи «вихідні»: посилання покаже ті самі дні й наступного дня
+// Пошук лише за назвою чи кінотеатром дат не має: посилання покаже всі сеанси й тоді, коли додадуться нові
+function pinnedQuery({ ranges, terms, dated }) {
+  const dm = d => `${d.slice(8)}.${d.slice(5, 7)}`;
+  const dates = !dated ? "" : ranges.map(([a, b]) => a === b ? dm(a) : `${dm(a)}-${dm(b)}`).join(" і ");
+  return [dates, ...terms].filter(Boolean).join(" ");
+}
+
 // Увесь пошук: кожен фільм і його сеанси по днях, без посилань на квитки (вони за посиланням на застосунок)
 async function shareAll() {
-  const head = "Кіно українською у Вроцлаві" + (SHOWN_LABEL ? `, ${SHOWN_LABEL}` : "");
+  if (!SHOWN_SEARCH) return;
+  const label = rangeLabel(SHOWN_SEARCH.ranges);
+  const head = "Кіно українською у Вроцлаві" + (label ? `, ${label}` : "");
   const blocks = [];
   for (const f of SHOWN) {
     const byDay = new Map();
@@ -539,10 +571,10 @@ async function shareAll() {
     }
     if (!byDay.size) continue;
     // без «сьогодні/завтра»: повідомлення можуть прочитати й наступного дня
-    blocks.push([filmName(f), ...[...byDay].map(([d, list]) => `${dayLabel(d, "")}: ${list.join(", ")}`)].join("\n"));
+    blocks.push([filmName(f), ...[...byDay].map(([d, list]) => `${dayLabel(d)}: ${list.join(", ")}`)].join("\n"));
   }
   if (!blocks.length) return;
-  await share(head, [head, ...blocks].join("\n\n"), appUrl(document.getElementById("q").value.trim()));
+  await share(head, [head, ...blocks].join("\n\n"), appUrl(pinnedQuery(SHOWN_SEARCH)));
 }
 
 async function share(title, text, url) {
@@ -561,8 +593,24 @@ function toast(msg) {
   toast.timer = setTimeout(() => { t.hidden = true; }, 2500);
 }
 
-// Відкритий застосунок щохвилини оновлює «вже почався», а після повернення на екран бере свіжий розклад
-setInterval(() => { if (DATA) { render(); renderStatus(); } }, 60 * 1000);
+// Відкритий застосунок щохвилини перевіряє, чи якийсь сеанс на екрані вже почався, і лише тоді перемальовує
+// картки (фокус лишається на тій самій кнопці); прихована вкладка нічого не робить
+setInterval(() => {
+  if (!DATA || document.hidden) return;
+  const now = warsawNow();
+  const begun = SHOWN.some(f => f.shows.some(s => !s.started && (s.date < now.date || (s.date === now.date && s.time <= now.time))));
+  if (begun) keepFocus(render);
+  renderStatus();
+}, 60 * 1000);
+
+// Перемальовує, зберігаючи фокус на тій самій кнопці чи посиланні картки
+function keepFocus(fn) {
+  const a = document.activeElement;
+  const sel = a && a.closest("#out") && (a.dataset.share ? `[data-share="${CSS.escape(a.dataset.share)}"]`
+    : a.getAttribute("href") ? `[href="${CSS.escape(a.getAttribute("href"))}"]` : null);
+  fn();
+  if (sel) document.querySelector(`#out ${sel}`)?.focus();
+}
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && DATA) refresh(); });
 async function refresh() {
   try {
@@ -573,4 +621,5 @@ async function refresh() {
   renderStatus();
 }
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+document.querySelector("#share-all svg").outerHTML = SHARE_ICON;
 load();
