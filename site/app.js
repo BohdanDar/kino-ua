@@ -307,8 +307,6 @@ function render() {
   } else if (explicit && ranges.some(([, b]) => b > addDays(now.date, 6))) {
     html += `<p class="empty">Далі ніж на тиждень розклад неповний: DCF і Нові Горизонти публікують сеанси приблизно на тиждень наперед, тож тут ще можуть зʼявитися нові.</p>`;
   }
-  const errs = Object.entries(DATA.errors || {}).filter(([d]) => ranges.some(([a, b]) => a <= d && d <= b));
-  if (errs.length) html += `<p class="err">Не вдалося перевірити: ${errs.map(([d, e]) => esc(`${d.slice(8)}.${d.slice(5, 7)}: ${e.join("; ")}`)).join(" · ")}</p>`;
   document.getElementById("out").innerHTML = html;
   document.querySelectorAll(".chips button").forEach(b => b.setAttribute("aria-pressed", String(norm(b.dataset.q) === norm(raw.trim()))));
 }
