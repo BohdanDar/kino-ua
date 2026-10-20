@@ -47,13 +47,19 @@ a.show:hover .buy{text-decoration:underline}
 .past .time,.past .where,.past .det,.past .buy{color:var(--past)}.past .time{text-decoration:line-through}
 .share{align-self:flex-start;font:inherit;font-size:14px;color:var(--blue);background:none;border:0;padding:8px 0 10px;cursor:pointer}
 .share:hover{text-decoration:underline}
-/* «!» про проблеми: на телефоні праворуч від заголовка, на широкому екрані ліворуч від пошуку */
-.alert{position:absolute;right:0;top:max(20px,env(safe-area-inset-top,0px));width:44px;height:44px;display:grid;place-items:center;
-  border:3px solid var(--red);border-radius:8px;color:var(--red);font:600 26px/1 var(--display);text-decoration:none}
+/* Значок проблем: праворуч від заголовка, однаково на телефоні й компʼютері */
+header{flex-direction:row;align-items:flex-start;justify-content:space-between;gap:12px}
+.head-text{display:flex;flex-direction:column;gap:6px;min-width:0}
+.alert{flex:none;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;
+  background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);font-weight:600;text-decoration:none}
+.alert:hover{background:color-mix(in srgb,var(--red) 20%,transparent)}
 .alert[hidden]{display:none}
-@media (min-width:1000px){.alert{right:auto;left:-76px;top:auto;margin-top:58px;width:52px;height:52px;font-size:30px}}
-h1{padding-right:56px}
-@media (min-width:1000px){h1{padding-right:0}}
+/* Новинки з минулого відкриття */
+#news{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;padding:12px 16px}
+#news[hidden]{display:none}
+#news p{margin:0}
+#news button{font:inherit;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+.tag{display:inline-block;vertical-align:3px;margin-left:8px;font:600 12px/1 var(--body);padding:4px 8px;border-radius:999px;background:var(--gold);color:#15202b}
 #status,#home{display:flex;flex-direction:column;gap:14px}
 #home[hidden]{display:none}
 #status[hidden]{display:none}

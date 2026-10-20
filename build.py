@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import time
+import urllib.request
 
 import kino_ua as k
 
@@ -17,6 +18,23 @@ DAYS = int(sys.argv[1]) if len(sys.argv) > 1 else 14
 OUT = os.path.join(k.HERE, "site", "data.json")
 FILM_FIELDS = ("key", "title", "title_uk", "original", "year", "minutes", "genres",
                "url", "poster", "synopsis", "translated")
+
+
+def previous_first_seen():
+    """Коли кожен фільм уперше зʼявився: з уже опублікованого data.json, інакше з кешу робота.
+    None, якщо порівнювати нема з чим (тоді новинок не позначаємо, щоб не назвати новим усе)."""
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if "/" in repo:
+        owner, name = repo.split("/", 1)
+        try:
+            with urllib.request.urlopen(f"https://{owner.lower()}.github.io/{name}/data.json", timeout=20) as r:
+                prev = json.loads(r.read().decode("utf-8"))
+            return {f["key"]: f.get("first_seen") for f in prev.get("films", [])}
+        except Exception as e:
+            print(f"Попередній розклад недоступний ({e}), беру дати з кешу", flush=True)
+    with k._cache_lock:
+        known = {key: v[1] for key, v in k._load_cache().get("first_seen", {}).items()}
+    return known or None
 
 
 def main():
@@ -40,6 +58,13 @@ def main():
                                    "hall": k.where(s)[len(s["cinema"]):].strip(" ()"),
                                    "version": s["version"], "link": s["link"]})
         print(f"{day}: {len(day_films)} фільмів, помилок {len(day_errors)}", flush=True)
+    prev = previous_first_seen()
+    stamp = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    for key, g in films.items():
+        # новий фільм отримує час першої появи; відомий зберігає свій
+        g["first_seen"] = prev.get(key, stamp) if prev is not None else None
+        if g["first_seen"]:
+            k.cached("first_seen", key, 0, lambda v=g["first_seen"]: v)
     k.save_cache()
     for g in films.values():
         g["shows"].sort(key=lambda s: (s["date"], s["time"]))

@@ -13,6 +13,7 @@ const STOP = new Set(["з", "із", "від", "по", "до", "у", "в", "на"
 
 let DATA = null;
 let SHOWN = [];  // фільми на екрані: з них беремо сеанси для «Поділитися»
+let NEWS = { since: null, keys: new Set() };  // фільми, що зʼявилися після минулого відкриття на цьому пристрої
 
 // ---------------------------------------------------------------- дати
 // «Сьогодні» за Вроцлавом, незалежно від часового поясу пристрою
@@ -273,7 +274,8 @@ function card(f, today, multiDay) {
         : `<div class="show">${inner}<span class="buy"></span></div>`);
   }
   const url = safeUrl(f.url);
-  const title = url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(f.title)}</a>` : esc(f.title);
+  const title = (url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(f.title)}</a>` : esc(f.title)) +
+    (NEWS.keys.has(f.key) ? '<span class="tag">Новинка</span>' : "");
   const meta = filmMeta(f);
   const uk = f.title_uk && f.title_uk.toLowerCase() !== f.title.toLowerCase() ? `<p class="uk">${esc(f.title_uk)}</p>` : "";
   return `<article class="film"><h2>${title}</h2>${uk}${meta ? `<p class="meta">${esc(meta)}</p>` : ""}` +
@@ -351,6 +353,7 @@ function problems() {
 function renderStatus() {
   const list = problems();
   document.getElementById("alert").hidden = !list.length;
+  document.getElementById("alert-n").textContent = list.length;
   const show = location.hash === "#status";
   document.getElementById("home").hidden = show;
   document.getElementById("status").hidden = !show;
@@ -389,9 +392,30 @@ async function load() {
     document.getElementById("out").innerHTML = '<p class="err">Не вдалося завантажити розклад. Перевірте інтернет і відкрийте ще раз.</p>';
     return;
   }
+  markNews();
   footer();
   render();
   renderStatus();
+}
+
+// Новинки: фільми, що вперше зʼявилися в розкладі після минулого відкриття застосунку на цьому пристрої.
+// Дата відкриття живе лише в браузері (localStorage), нічого нікуди не надсилається.
+function markNews() {
+  let since = null;
+  try {
+    since = localStorage.getItem("kino-last-visit");
+    localStorage.setItem("kino-last-visit", new Date().toISOString());
+  } catch (e) { /* приватний режим: без новинок */ }
+  const today = warsawNow().date;
+  const fresh = since ? DATA.films.filter(f => f.first_seen && f.first_seen > since && f.shows.some(s => s.date >= today)) : [];
+  NEWS = { since, keys: new Set(fresh.map(f => f.key)) };
+  const box = document.getElementById("news");
+  box.hidden = !fresh.length;
+  if (!fresh.length) return;
+  const d = new Date(since);
+  const when = `${d.getDate()} ${UK_MONTHS[d.getMonth()]}`;
+  box.innerHTML = `<p>Нове з вашого минулого відкриття (${esc(when)}): ` +
+    fresh.map(f => `<button data-q="${esc(f.title_uk || f.title)}">${esc(f.title_uk || f.title)}</button>`).join(", ") + ".</p>";
 }
 
 window.addEventListener("hashchange", () => { if (DATA) renderStatus(); window.scrollTo(0, 0); });
