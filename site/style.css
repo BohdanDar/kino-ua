@@ -73,3 +73,4 @@ header{flex-direction:row;align-items:flex-start;justify-content:space-between;g
 .empty,.err,footer{color:var(--mute);font-size:14px;margin:0}
 .empty button{font:inherit;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
 .err{border-left:3px solid var(--gold);padding-left:10px}
+.err a{color:var(--blue)}

@@ -388,6 +388,7 @@ async function load() {
     const r = await fetch("data.json", { cache: "no-cache" });
     if (!r.ok) throw new Error(r.status);
     DATA = await r.json();
+    if (DEMO) demoData();
   } catch (e) {
     document.getElementById("out").innerHTML = '<p class="err">Не вдалося завантажити розклад. Перевірте інтернет і відкрийте ще раз.</p>';
     return;
@@ -398,11 +399,30 @@ async function load() {
   renderStatus();
 }
 
+// Демо-режим (?demo): вигадані новинки й проблеми поверх справжнього розкладу, щоб побачити, як вони виглядають.
+// Нічого не зберігає й не змінює «минуле відкриття».
+const DEMO = new URL(location.href).searchParams.has("demo");
+function demoData() {
+  const today = warsawNow().date;
+  DATA.films.forEach((f, i) => { f.first_seen = new Date(Date.now() - (i + 1) * 864e5).toISOString(); });
+  const f = DATA.films[0];
+  if (f) Object.assign(f, { translated: false,
+    synopsis: "Przykładowy opis po polsku: tak wygląda film, dla którego nie ma jeszcze ukraińskiego tłumaczenia." });
+  DATA.errors = { [today]: ["Helios: HTTP Error 503: Service Unavailable", "Multikino: timed out, показано дані з 10:17"],
+    [addDays(today, 1)]: ["Helios: HTTP Error 503: Service Unavailable"] };
+  DATA.generated_at = new Date(Date.now() - 7 * 36e5).toISOString();
+  const bar = document.createElement("p");
+  bar.className = "err";
+  bar.innerHTML = 'Демо-режим: новинки й проблеми тут вигадані. <a href="./">Вийти з демо</a>';
+  document.querySelector(".wrap").prepend(bar);
+}
+
 // Новинки: фільми, що вперше зʼявилися в розкладі після минулого відкриття застосунку на цьому пристрої.
 // Дата відкриття живе лише в браузері (localStorage), нічого нікуди не надсилається.
 function markNews() {
   let since = null;
-  try {
+  if (DEMO) since = new Date(Date.now() - 30 * 864e5).toISOString();
+  else try {
     since = localStorage.getItem("kino-last-visit");
     localStorage.setItem("kino-last-visit", new Date().toISOString());
   } catch (e) { /* приватний режим: без новинок */ }
