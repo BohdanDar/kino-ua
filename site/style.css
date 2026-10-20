@@ -22,6 +22,14 @@ header{display:flex;flex-direction:column;gap:6px}
 h1{font:600 clamp(20px,5vw,28px)/1.15 var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
 #q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
   background:var(--card);color:var(--ink);outline:none}
+#search{position:relative}
+#q{padding-right:48px}
+#q::-webkit-search-cancel-button{display:none}
+/* свій хрестик: видно, поки в полі є текст, навіть без фокусу (вбудований браузерний ховається) */
+#clear{position:absolute;top:0;right:0;width:48px;height:100%;border:0;background:none;color:var(--mute);
+  font:400 26px/1 var(--display);cursor:pointer;border-radius:0 12px 12px 0}
+#clear:hover{color:var(--ink)}
+#q:placeholder-shown+#clear{display:none}
 #q:focus{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 25%,transparent)}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chips button{font:inherit;font-size:14px;border:0;border-radius:999px;padding:6px 12px;background:var(--chip);color:var(--ink);cursor:pointer}

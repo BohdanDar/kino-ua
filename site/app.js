@@ -553,6 +553,7 @@ function markNews() {
 
 window.addEventListener("hashchange", () => { if (DATA) renderStatus(); window.scrollTo(0, 0); });
 document.getElementById("q").addEventListener("input", () => setQuery(document.getElementById("q").value));
+document.getElementById("clear").addEventListener("click", () => { setQuery(""); document.getElementById("q").focus(); });
 document.getElementById("search").addEventListener("submit", e => { e.preventDefault(); document.getElementById("q").blur(); });
 document.addEventListener("click", e => {
   const b = e.target.closest("button[data-q]");
