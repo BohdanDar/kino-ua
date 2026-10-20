@@ -53,6 +53,11 @@ def main():
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(data, fh, ensure_ascii=False, separators=(",", ":"))
     untranslated = [g["key"] for g in films.values() if not g.get("translated") and g.get("synopsis")]
+    if os.environ.get("GITHUB_ACTIONS"):  # підсумок видно в анотаціях запуску, без читання логу
+        for day, errs in errors.items():
+            print(f"::warning title=Не вдалося перевірити {day}::{'; '.join(errs)}")
+        print(f"::notice title=Розклад::{len(films)} фільмів, "
+              f"{sum(len(g['shows']) for g in films.values())} сеансів; без перекладу: {untranslated or 'немає'}")
     print(f"Готово за {time.time() - t0:.1f} с: {len(films)} фільмів, "
           f"{sum(len(g['shows']) for g in films.values())} сеансів; без перекладу: {untranslated}")
     sys.stdout.flush()
