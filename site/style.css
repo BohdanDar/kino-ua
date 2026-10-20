@@ -75,7 +75,6 @@ a.show:hover .buy{text-decoration:underline}
 .trailer:hover{border-color:var(--blue)}
 .trailer:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .trailer::after{content:"";position:absolute;inset:-4px 0}
-.trailer .beta{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);margin:0;background:var(--card);font-size:8.5px;padding:1px 3px}
 .acts{align-items:flex-start}
 .icon{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;
   color:var(--blue);background:none;border:0;padding:0;cursor:pointer}

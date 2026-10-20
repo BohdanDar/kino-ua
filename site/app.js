@@ -381,7 +381,7 @@ function actions(f) {
   const yt = /^[\w-]{11}$/.test(f.trailer || "")
     ? `https://www.youtube.com/watch?v=${f.trailer}`
     : "https://www.youtube.com/results?search_query=" + encodeURIComponent(`${f.title_uk || f.original || f.title} трейлер українською`);
-  return `<div class="acts"><a class="trailer" href="${esc(yt)}" target="_blank" rel="noopener noreferrer" aria-label="Трейлер українською на YouTube (бета)" title="Трейлер українською (бета)">${YT_ICON}${BETA}</a>` +
+  return `<div class="acts"><a class="trailer" href="${esc(yt)}" target="_blank" rel="noopener noreferrer" aria-label="Трейлер українською на YouTube" title="Трейлер українською">${YT_ICON}</a>` +
     `<button class="icon share" data-share="${esc(f.key)}" aria-label="Поділитися фільмом" title="Поділитися">${SHARE_ICON}</button></div>`;
 }
 
