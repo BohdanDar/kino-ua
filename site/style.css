@@ -47,8 +47,8 @@ a.show:hover .buy{text-decoration:underline}
 .past .time,.past .where,.past .det,.past .buy{color:var(--past)}.past .time{text-decoration:line-through}
 /* Рейтинги на початку рядка жанрів; трейлер і «Поділитися» у правому верхньому куті */
 .film{position:relative}
-.film h2{padding-right:92px}
-.acts{position:absolute;top:8px;right:8px;display:flex;gap:2px}
+.head::after{content:"";display:block;clear:both}
+.acts{float:right;display:flex;gap:2px;margin:-10px -10px 4px 10px}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .rate{position:relative;display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600;color:var(--ink);text-decoration:none;
   padding:2px 8px 2px 2px;border-radius:6px;background:var(--chip);font-variant-numeric:tabular-nums}
@@ -61,11 +61,14 @@ a.show:hover .buy{text-decoration:underline}
 .rate::after{content:"";position:absolute;inset:-10px -3px}
 .beta{font:600 9.5px/1 var(--body);text-transform:uppercase;letter-spacing:.03em;color:var(--mute);border:1px solid var(--line);
   border-radius:4px;padding:2px 3px;margin-left:2px}
-.icon.yt{position:relative}
-.icon.yt .disc{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;
-  background:var(--blue);color:var(--card);padding-left:2px}
-.icon.yt:hover{background:none}.icon.yt:hover .disc{filter:brightness(1.12)}
-.icon.yt .beta{position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);margin:0;background:var(--card);font-size:8.5px;padding:1px 3px}
+/* Трейлер: як кнопка «Поділитися списком», з підписом «бета» під нею */
+.trailer{position:relative;flex:none;display:inline-flex;align-items:center;gap:5px;height:36px;margin-top:4px;padding:0 11px 0 9px;
+  border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--blue);font-size:14px;font-weight:600;text-decoration:none}
+.trailer:hover{border-color:var(--blue)}
+.trailer:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.trailer::after{content:"";position:absolute;inset:-4px 0}
+.trailer .beta{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);margin:0;background:var(--card);font-size:8.5px;padding:1px 3px}
+.acts{align-items:flex-start}
 .icon{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;
   color:var(--blue);background:none;border:0;padding:0;cursor:pointer}
 .icon:hover{background:var(--chip)}

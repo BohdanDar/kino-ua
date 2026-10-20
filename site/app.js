@@ -322,7 +322,7 @@ function card(f, today, multiDay) {
   const meta = filmMeta(f);
   const uk = f.title_uk && f.title_uk.toLowerCase() !== f.title.toLowerCase() ? `<p class="uk">${esc(f.title_uk)}</p>` : "";
   const rates = ratings(f);
-  return `<article class="film${NEWS.keys.has(f.key) ? " new" : ""}">${actions(f)}<h2>${title}</h2>${uk}` +
+  return `<article class="film${NEWS.keys.has(f.key) ? " new" : ""}"><div class="head">${actions(f)}<h2>${title}</h2></div>${uk}` +
     `<div class="meta">${rates}${meta ? `<span>${esc(meta)}</span>` : ""}</div>` +
     `<p class="syn${f.translated ? "" : " pl"}">${esc(f.synopsis || "Опису поки немає.")}</p>` +
     `<div class="shows">${rows.join("")}</div></article>`;
@@ -334,8 +334,8 @@ const SHARE_ICON = APPLE
   ? '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2"/></svg>'
   : '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 const BETA = '<span class="beta" title="Бета: ще може бути неточним">бета</span>';
-// Трейлер: синій круг із трикутником «відтворити», у кольорах сайту (не червоний логотип YouTube)
-const YT_ICON = '<span class="disc" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></span>';
+// Трейлер: кнопка зі значком кіноплівки й словом «Трейлер», у стилі кнопки «Поділитися списком»
+const YT_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/><path d="m10.5 9.5 3.5 2.5-3.5 2.5z" fill="currentColor" stroke-width="1.5"/></svg>Трейлер';
 
 // Рейтинги перед жанрами: завжди обидва логотипи, без оцінки лише логотип; посилання ведуть на сайти рейтингів.
 // Rotten Tomatoes і трейлер позначені «бета»: дані з OMDb і пошуку YouTube ще не завжди точні.
@@ -357,7 +357,7 @@ function actions(f) {
   const yt = /^[\w-]{11}$/.test(f.trailer || "")
     ? `https://www.youtube.com/watch?v=${f.trailer}`
     : "https://www.youtube.com/results?search_query=" + encodeURIComponent(`${f.title_uk || f.original || f.title} трейлер українською`);
-  return `<div class="acts"><a class="icon yt" href="${esc(yt)}" target="_blank" rel="noopener noreferrer" aria-label="Трейлер українською на YouTube (бета)" title="Трейлер українською (бета)">${YT_ICON}${BETA}</a>` +
+  return `<div class="acts"><a class="trailer" href="${esc(yt)}" target="_blank" rel="noopener noreferrer" aria-label="Трейлер українською на YouTube (бета)" title="Трейлер українською (бета)">${YT_ICON}${BETA}</a>` +
     `<button class="icon share" data-share="${esc(f.key)}" aria-label="Поділитися фільмом" title="Поділитися">${SHARE_ICON}</button></div>`;
 }
 
