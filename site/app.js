@@ -76,13 +76,17 @@ function parseQuery(raw, today) {
   const ranges = [];
   // слова-періоди
   // ключ: регулярний вираз; «вихідн»/«тижд» з будь-яким закінченням, «усі» лише цілим словом
-  const words = { "вихідн[а-яіїєґ]*": () => {
+  const words = { "наступн[а-яіїєґ]*\\s+тиж[дн][а-яіїєґ]*": () => {
+      const mon = addDays(today, (8 - weekday(today)) % 7 || 7);
+      return [mon, addDays(mon, 6)];
+    },
+    "вихідн[а-яіїєґ]*": () => {
       const wd = weekday(today);
       if (wd === 0) return [today, today];
       const sat = addDays(today, (6 - wd + 7) % 7);
       return [sat, addDays(sat, 1)];
     },
-    "тижд[а-яіїєґ]*": () => [today, addDays(today, 6)],
+    "тиж[дн][а-яіїєґ]*": () => [today, addDays(today, 6)],
     "усі|все|всі|увесь|весь": () => [today, lastDay()],
   };
   for (const [re, fn] of Object.entries(words)) {
@@ -91,6 +95,7 @@ function parseQuery(raw, today) {
   // час: «19:50» шукає сеанс саме тоді, «після 18» або «після 18:30» усі пізніші
   let after = null;
   const times = [];
+  q = q.replace(/(?:^|\s)(?:у|в)?вечері(?=\s|$)|(?:^|\s)вечором(?=\s|$)/g, () => { after = "17:00"; return " "; });
   q = q.replace(/(?:після|after)\s+(\d{1,2})(?:[:.](\d{2}))?(?:\s*(?:год|годин[а-яіїєґ]*))?(?=\s|$)/g, (_, h, m) => {
     if (+h > 23) return _;
     after = `${h.padStart(2, "0")}:${m || "00"}`;
@@ -134,10 +139,14 @@ function parseQuery(raw, today) {
       continue;
     }
     const d = a.v && a.v.bare ? resolveDay(a.v.bare, 0, 0, today) : a.v;
-    if (d) ranges.push([d, d]);
+    const before = q.slice(0, a.at);
+    // «до неділі» від сьогодні до неї, «з пʼятниці» від неї до кінця розкладу
+    if (d && /(?:^|\s)(?:до|по)\s*$/.test(before)) ranges.push([today, d]);
+    else if (d && /(?:^|\s)(?:з|із|від)\s*$/.test(before)) ranges.push([d, d > lastDay() ? d : lastDay()]);
+    else if (d) ranges.push([d, d]);
     rest = rest.slice(0, a.at) + " ".repeat(a.end - a.at) + rest.slice(a.end);
   }
-  const terms = rest.split(/[\s,;:]+/).filter(w => w && !STOP.has(w));
+  const terms = rest.split(/[\s,;:]+/).filter(w => w && !STOP.has(w) && !UK_MONTHS.includes(w) && !/^наступн/.test(w));
   return { ranges, terms, times, after };
 }
 
@@ -205,12 +214,30 @@ function filterShows(ranges, terms, times, after, now) {
   return films;
 }
 
+// Усі слова розкладу (назви, жанри, кінотеатри, зали, формати): чи є слово запиту хоч десь
+let VOCAB = null;
+function inSchedule(term) {
+  if (!VOCAB || VOCAB.data !== DATA) {
+    const text = norm(DATA.films.map(f => [f.title, f.title_uk, f.original, ...(f.genres || []),
+      ...f.shows.map(s => [s.cinema, s.hall, s.version, DATA.cinemas[s.cinema]].join(" "))].join(" ")).join(" "));
+    VOCAB = { data: DATA, text, words: wordsOf(text) };
+  }
+  return matches(term, VOCAB.text, VOCAB.words);
+}
+
 function search(raw) {
   const now = warsawNow();
   let { ranges, terms, times, after } = parseQuery(raw, now.date);
   terms = terms.map(norm);
-  const anyFilter = terms.length || times.length || after;
   let note = "";
+  // слово, якого немає в розкладі взагалі («наступна», «ввечері»), не повинно ховати все інше;
+  // але якщо запит лише з таких слів, лишаємо «не знайдено»
+  const unknown = terms.filter(t => !inSchedule(t));
+  if (unknown.length && unknown.length < terms.length + ranges.length + times.length + (after ? 1 : 0)) {
+    terms = terms.filter(t => !unknown.includes(t));
+    note = `Не знайшов у розкладі ${unknown.map(t => `«${t}»`).join(", ")}, тож шукаю без ${unknown.length > 1 ? "цих слів" : "цього слова"}.`;
+  }
+  const anyFilter = terms.length || times.length || after;
   const explicit = ranges.length > 0;
   if (!ranges.length) ranges = anyFilter ? [[now.date, lastDay()]] : [[now.date, now.date]];
   let films = filterShows(ranges, terms, times, after, now);
@@ -420,16 +447,21 @@ function demoData() {
 // Новинки: фільми, що вперше зʼявилися в розкладі після минулого відкриття застосунку на цьому пристрої.
 // Дата відкриття живе лише в браузері (localStorage), нічого нікуди не надсилається.
 function markNews() {
+  // Памʼятаємо версію розкладу (коли робот його зібрав), а не годинник пристрою: так фільм,
+  // знайдений роботом за хвилину до вашого відкриття, але ще не опублікований, не загубиться.
   let since = null;
   if (DEMO) since = new Date(Date.now() - 30 * 864e5).toISOString();
   else try {
-    since = localStorage.getItem("kino-last-visit");
-    localStorage.setItem("kino-last-visit", new Date().toISOString());
+    since = localStorage.getItem("kino-seen-version") || localStorage.getItem("kino-last-visit");
+    if (DATA.generated_at) {
+      localStorage.setItem("kino-seen-version", DATA.generated_at);
+      localStorage.removeItem("kino-last-visit");
+    }
   } catch (e) { /* приватний режим: без новинок */ }
   // лише фільми, на які ще можна піти: хоч один сеанс попереду
   const now = warsawNow();
   const ahead = s => s.date > now.date || (s.date === now.date && s.time > now.time);
-  const fresh = since ? DATA.films.filter(f => f.first_seen && f.first_seen > since && f.shows.some(ahead)) : [];
+  const fresh = since ? DATA.films.filter(f => f.first_seen && new Date(f.first_seen) > new Date(since) && f.shows.some(ahead)) : [];
   NEWS = { since, keys: new Set(fresh.map(f => f.key)) };
   const box = document.getElementById("news");
   box.hidden = !fresh.length;
