@@ -22,6 +22,8 @@
     <span class="flag"><i></i><i></i></span>
     <h1>Кіно українською у Вроцлаві</h1>
   </header>
+  <a id="alert" class="alert" href="#status" hidden aria-label="Є проблеми, що потребують уваги" title="Є проблеми, що потребують уваги">!</a>
+  <div id="home">
   <form id="search" role="search" autocomplete="off">
     <input id="q" type="search" enterkeyhint="search" aria-label="Запит"
            placeholder="завтра, субота, 25.10, з 20 по 25, Веріті, Multikino">
@@ -35,6 +37,12 @@
   </nav>
   <p id="sub" class="sub"></p>
   <main id="out"></main>
+  </div>
+  <section id="status" hidden>
+    <a class="back" href="#">← До розкладу</a>
+    <h2>Що потребує уваги</h2>
+    <div id="problems"></div>
+  </section>
   <footer id="foot"></footer>
 </div>
 <script src="app.js"></script>

@@ -53,12 +53,6 @@ def main():
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(data, fh, ensure_ascii=False, separators=(",", ":"))
     untranslated = [g["key"] for g in films.values() if not g.get("translated") and g.get("synopsis")]
-    if os.environ.get("GITHUB_OUTPUT"):  # звіт для notify.py: збої джерел і фільми без перекладу
-        report = {"errors": errors, "keys": list(films), "untranslated": [
-            {"key": g["key"], "title": g["title"], "synopsis_pl": g.get("synopsis", "")}
-            for g in films.values() if not g.get("translated") and g.get("synopsis")]}
-        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
-            fh.write("report=" + json.dumps(report, ensure_ascii=False) + "\n")
     if os.environ.get("GITHUB_ACTIONS"):  # підсумок видно в анотаціях запуску, без читання логу
         for day, errs in errors.items():
             print(f"::warning title=Не вдалося перевірити {day}::{'; '.join(errs)}")

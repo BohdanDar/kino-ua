@@ -311,6 +311,56 @@ function render() {
   document.querySelectorAll(".chips button").forEach(b => b.setAttribute("aria-pressed", String(norm(b.dataset.q) === norm(raw.trim()))));
 }
 
+// ---------------------------------------------------------------- проблеми
+// Що потребує уваги: робот давно не оновлював розклад, кінотеатр не відповідає, фільм без перекладу.
+function problems() {
+  const out = [];
+  const now = warsawNow();
+  const ageH = (Date.now() - new Date(DATA.generated_at)) / 36e5;
+  if (ageH > 5) {
+    out.push({ level: "bad", title: `Розклад не оновлювався ${Math.floor(ageH)} год`,
+      text: "Робот мав запускатися кожні 2 години. Можливо, GitHub його вимкнув або він падає. Напишіть Claude у проєкті." });
+  }
+  const bySource = {};
+  for (const [day, errs] of Object.entries(DATA.errors || {})) {
+    if (day < now.date) continue;
+    for (const e of errs) {
+      const i = e.indexOf(": ");
+      const name = i > 0 ? e.slice(0, i) : "Джерело";
+      const why = i > 0 ? e.slice(i + 2) : e;
+      const old = why.includes("показано дані з");
+      const k = name + "|" + why.replace(/, показано дані з.*/, "");
+      (bySource[k] ||= { name, why: why.replace(/, показано дані з.*/, ""), old, days: [] }).days.push(day);
+    }
+  }
+  for (const p of Object.values(bySource)) {
+    out.push({ level: p.old ? "warn" : "bad",
+      title: `${p.name} не відповідає`,
+      text: (p.old ? "Показано його останній вдалий розклад (до 12 годин). " : "Його сеансів у застосунку зараз немає. ") +
+        `Дні: ${p.days.map(d => `${d.slice(8)}.${d.slice(5, 7)}`).join(", ")}. Помилка: ${p.why}. ` +
+        "Якщо це триває довше за день, напишіть Claude у проєкті." });
+  }
+  for (const f of DATA.films) {
+    if (f.translated || !f.synopsis || !f.shows.some(s => s.date >= now.date)) continue;
+    out.push({ level: "warn", title: `Без українського опису: ${f.title}`,
+      text: `Напишіть Claude у проєкті «переклади опис ${f.title}».`, pl: f.synopsis });
+  }
+  return out;
+}
+
+function renderStatus() {
+  const list = problems();
+  document.getElementById("alert").hidden = !list.length;
+  const show = location.hash === "#status";
+  document.getElementById("home").hidden = show;
+  document.getElementById("status").hidden = !show;
+  if (!show) return;
+  document.getElementById("problems").innerHTML = list.length
+    ? list.map(p => `<article class="problem${p.level === "warn" ? " warn" : ""}"><h3>${esc(p.title)}</h3><p>${esc(p.text)}</p>` +
+      (p.pl ? `<p class="pl">${esc(p.pl)}</p>` : "") + `</article>`).join("")
+    : '<p class="empty">Усе працює, проблем немає.</p>';
+}
+
 function footer() {
   const g = DATA.generated;
   const ageH = (Date.now() - new Date(DATA.generated_at)) / 36e5;
@@ -341,8 +391,10 @@ async function load() {
   }
   footer();
   render();
+  renderStatus();
 }
 
+window.addEventListener("hashchange", () => { if (DATA) renderStatus(); window.scrollTo(0, 0); });
 document.getElementById("q").addEventListener("input", () => setQuery(document.getElementById("q").value));
 document.getElementById("search").addEventListener("submit", e => { e.preventDefault(); document.getElementById("q").blur(); });
 document.addEventListener("click", e => {
@@ -372,7 +424,7 @@ async function share(btn) {
 }
 
 // Відкритий застосунок щохвилини оновлює «вже почався», а після повернення на екран бере свіжий розклад
-setInterval(() => DATA && render(), 60 * 1000);
+setInterval(() => { if (DATA) { render(); renderStatus(); } }, 60 * 1000);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && DATA) refresh(); });
 async function refresh() {
   try {
@@ -380,6 +432,7 @@ async function refresh() {
     if (r.ok) { DATA = await r.json(); footer(); }
   } catch (e) { /* офлайн: лишаємо, що є */ }
   render();
+  renderStatus();
 }
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 load();

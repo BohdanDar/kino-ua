@@ -22,8 +22,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-    outputs:
-      report: ${{ steps.collect.outputs.report }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -41,7 +39,6 @@ jobs:
           restore-keys: kino-cache-
 
       - name: Зібрати сеанси на 14 днів
-        id: collect
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: python3 build.py 14
@@ -64,28 +61,14 @@ jobs:
       - id: deploy
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
-  # Повідомлення власнику через GitHub Issues (лист на пошту): збій джерела, фільм без перекладу.
-  # І щоразу «будить» сам робот: GitHub вимикає розклад у репозиторії без змін за 60 днів.
-  notify:
-    needs: build
-    if: always()
+  # GitHub вимикає розклад у репозиторії без змін за 60 днів; повторне ввімкнення це скидає.
+  keepalive:
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-24.04
     permissions:
       actions: write
-      contents: read
-      issues: write
     env:
       GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Повідомити про збої й переклади
-        env:
-          BUILD_RESULT: ${{ needs.build.result }}
-          REPORT: ${{ needs.build.outputs.report }}
-        run: python3 notify.py
       - name: Не дати GitHub вимкнути розклад
-        if: github.event_name == 'schedule'
-        run: gh api -X PUT "repos/$GH_REPO/actions/workflows/update.yml/enable"
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/update.yml/enable"
