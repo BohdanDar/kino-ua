@@ -16,6 +16,9 @@ import extras
 import kino_ua as k
 
 DAYS = int(sys.argv[1]) if len(sys.argv) > 1 else 14
+# Розклад далі ніж на тиждень майже не змінюється: ці дні питаємо в кінотеатрів раз на ~6 годин
+# (робот запускається кожні 2 години, тож беремо кеш, молодший за 5,5 год), а не щозапуску.
+NEAR_DAYS, FAR_REUSE = 7, 5.5 * 3600
 OUT = os.path.join(k.HERE, "site", "data.json")
 FILM_FIELDS = ("key", "title", "title_uk", "original", "year", "minutes", "genres",
                "poster", "synopsis", "translated")
@@ -45,7 +48,7 @@ def main():
     films, errors = {}, {}
     for i in range(DAYS):
         day = today + dt.timedelta(days=i)
-        day_films, day_errors, _ = k.collect(day)
+        day_films, day_errors, _ = k.collect(day, reuse=FAR_REUSE if i >= NEAR_DAYS else 0)
         if day_errors:
             errors[str(day)] = day_errors
         for f in day_films:

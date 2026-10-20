@@ -334,7 +334,8 @@ const SHARE_ICON = APPLE
   ? '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2"/></svg>'
   : '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 const BETA = '<span class="beta" title="Бета: ще може бути неточним">бета</span>';
-const YT_ICON = '<svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>';
+// Трейлер: синій круг із трикутником «відтворити», у кольорах сайту (не червоний логотип YouTube)
+const YT_ICON = '<span class="disc" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></span>';
 
 // Рейтинги перед жанрами: завжди обидва логотипи, без оцінки лише логотип; посилання ведуть на сайти рейтингів.
 // Rotten Tomatoes і трейлер позначені «бета»: дані з OMDb і пошуку YouTube ще не завжди точні.

@@ -62,6 +62,9 @@ a.show:hover .buy{text-decoration:underline}
 .beta{font:600 9.5px/1 var(--body);text-transform:uppercase;letter-spacing:.03em;color:var(--mute);border:1px solid var(--line);
   border-radius:4px;padding:2px 3px;margin-left:2px}
 .icon.yt{position:relative}
+.icon.yt .disc{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;
+  background:var(--blue);color:var(--card);padding-left:2px}
+.icon.yt:hover{background:none}.icon.yt:hover .disc{filter:brightness(1.12)}
 .icon.yt .beta{position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);margin:0;background:var(--card);font-size:8.5px;padding:1px 3px}
 .icon{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;
   color:var(--blue);background:none;border:0;padding:0;cursor:pointer}
