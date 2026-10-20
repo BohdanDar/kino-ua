@@ -56,7 +56,7 @@ function resolveDay(day, month, year, today) {
 // Точки в запиті: дата, день тижня або «сьогодні/завтра». Повертає [{from, to, start, end}]
 const POINT = new RegExp([
   "(\\d{4})-(\\d{1,2})-(\\d{1,2})",                        // 2026-10-25
-  "(\\d{1,2})[./](\\d{1,2})(?:[./](\\d{2,4}))?",           // 25.10, 25/10/2026
+  "(\\d{1,2})[./](0?[1-9]|1[0-2])(?:[./](\\d{2,4}))?(?![\\d])", // 25.10, 25/10/2026 (не «2.0» з назви)
   `(\\d{1,2})\\s*(${MONTH_STEMS.join("|")})[а-яіїєґ]*`,     // 25 жовтня
   "(?<=^|[\\s,–—-])(\\d{1,2})(?=$|[\\s,–—-])",              // 25 окремим словом (не 3D, не 4DX, не «(2)»)
   "(сьогодні|сегодня|завтра|післязавтра)",
@@ -244,6 +244,16 @@ function inSchedule(term) {
 
 function search(raw) {
   const now = warsawNow();
+  // Запит дорівнює назві фільму (кнопки «Нове…» і посилання «Поділитися» ставлять саме її):
+  // показуємо цей фільм на всі дні, не шукаючи в назві дат («Крашанка 2.0», «1917»)
+  const q = norm(raw.trim());
+  const exact = q && DATA.films.filter(f => [f.title, f.title_uk, f.original].some(t => t && norm(t) === q));
+  if (exact && exact.length) {
+    const keys = new Set(exact.map(f => f.key));
+    const ranges = [[now.date, lastDay()]];
+    const films = filterShows(ranges, [], [], null, now).filter(f => keys.has(f.key));
+    return { films, ranges, terms: [raw.trim()], now, note: "", explicit: false };
+  }
   let { ranges, terms, times, after, bad } = parseQuery(raw, now.date);
   terms = terms.map(norm);
   let note = bad.length ? `Дати ${bad.map(b => `«${b}»`).join(", ")} немає в календарі, тож пропускаю її. ` : "";
