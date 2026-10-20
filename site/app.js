@@ -406,8 +406,10 @@ function markNews() {
     since = localStorage.getItem("kino-last-visit");
     localStorage.setItem("kino-last-visit", new Date().toISOString());
   } catch (e) { /* приватний режим: без новинок */ }
-  const today = warsawNow().date;
-  const fresh = since ? DATA.films.filter(f => f.first_seen && f.first_seen > since && f.shows.some(s => s.date >= today)) : [];
+  // лише фільми, на які ще можна піти: хоч один сеанс попереду
+  const now = warsawNow();
+  const ahead = s => s.date > now.date || (s.date === now.date && s.time > now.time);
+  const fresh = since ? DATA.films.filter(f => f.first_seen && f.first_seen > since && f.shows.some(ahead)) : [];
   NEWS = { since, keys: new Set(fresh.map(f => f.key)) };
   const box = document.getElementById("news");
   box.hidden = !fresh.length;
