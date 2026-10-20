@@ -1,0 +1,4 @@
+.kino_cache.json
+.kino_cache.json.tmp
+site/data.json
+__pycache__/

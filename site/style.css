@@ -1,0 +1,50 @@
+/* Афіша: вузька колонка карток фільмів, усередині кожної список сеансів як квитки */
+:root{
+  --bg:#eef1f5; --card:#ffffff; --ink:#15202b; --mute:#5b6675; --line:#dbe1e8;
+  --blue:#0b5cad; --gold:#f2c230; --past:#8b95a2; --chip:#e2e8f0;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --card:#18202a; --ink:#e9eef4; --mute:#9aa6b4; --line:#27313d;
+  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --card:#18202a; --ink:#e9eef4; --mute:#9aa6b4; --line:#27313d;
+  --blue:#6fb0ff; --gold:#f2c230; --past:#6b7684; --chip:#222c38; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:760px;margin:0 auto;padding-block:max(20px,env(safe-area-inset-top,0px)) 40px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-direction:column;gap:6px}
+.flag{display:flex;width:34px;height:6px;border-radius:3px;overflow:hidden}
+.flag i{flex:1;background:var(--blue)}.flag i+i{background:var(--gold)}
+h1{font:600 clamp(20px,5vw,28px)/1.15 var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+#q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);outline:none}
+#q:focus{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 25%,transparent)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{font:inherit;font-size:14px;border:0;border-radius:999px;padding:6px 12px;background:var(--chip);color:var(--ink);cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--blue);color:#fff}
+.sub{margin:0;color:var(--mute)}
+main{display:flex;flex-direction:column;gap:14px}
+.film{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 18px 8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+h2{font:600 19px/1.25 var(--display);margin:0;text-wrap:balance}
+.uk{margin:-2px 0 0;font-weight:600;color:var(--blue)}
+h2 a{color:inherit;text-decoration:none}h2 a:hover{text-decoration:underline}
+.meta{margin:0;color:var(--mute);font-size:14px}
+.syn{margin:2px 0 8px;max-width:65ch}
+.syn.pl{color:var(--mute)}
+.shows{display:flex;flex-direction:column}
+.day{font-weight:600;font-size:14px;color:var(--mute);padding:10px 0 2px;border-top:1px solid var(--line)}
+.show{display:grid;grid-template-columns:70px 1fr auto;gap:4px 12px;align-items:center;padding:11px 0;border-top:1px dashed var(--line);color:inherit;text-decoration:none}
+.day+.show{border-top:0}
+.show:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+.time{font:600 20px/1 var(--display);font-variant-numeric:tabular-nums;grid-row:1/3}
+.where{font-weight:600;min-width:0}
+.det{grid-column:2;color:var(--mute);font-size:13.5px;min-width:0}
+.buy{grid-column:3;grid-row:1/3;color:var(--blue);font-weight:600;white-space:nowrap}
+a.show:hover .buy{text-decoration:underline}
+.past .time,.past .where,.past .det,.past .buy{color:var(--past)}.past .time{text-decoration:line-through}
+.empty,.err,footer{color:var(--mute);font-size:14px;margin:0}
+.empty button{font:inherit;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+.err{border-left:3px solid var(--gold);padding-left:10px}

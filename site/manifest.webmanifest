@@ -1,0 +1,16 @@
+{
+  "name": "Кіно українською у Вроцлаві",
+  "short_name": "Кіно UA",
+  "description": "Сеанси українською мовою в кінотеатрах Вроцлава",
+  "lang": "uk",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef1f5",
+  "theme_color": "#0b5cad",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
