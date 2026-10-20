@@ -45,6 +45,8 @@ h2 a{color:inherit;text-decoration:none}h2 a:hover{text-decoration:underline}
 .buy{grid-column:3;grid-row:1/3;color:var(--blue);font-weight:600;white-space:nowrap}
 a.show:hover .buy{text-decoration:underline}
 .past .time,.past .where,.past .det,.past .buy{color:var(--past)}.past .time{text-decoration:line-through}
+.share{align-self:flex-start;font:inherit;font-size:14px;color:var(--blue);background:none;border:0;padding:8px 0 10px;cursor:pointer}
+.share:hover{text-decoration:underline}
 .empty,.err,footer{color:var(--mute);font-size:14px;margin:0}
 .empty button{font:inherit;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
 .err{border-left:3px solid var(--gold);padding-left:10px}
