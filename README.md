@@ -8,6 +8,7 @@
 
 - `kino_ua.py` збирає сеанси з Cinema City, Multikino (через Filmweb), Helios, Kino Nowe Horyzonty, DCF і DKF Politechnika. Українські назви й описи: TMDB, далі Планета Кіно, далі `synopsis_uk.json`. Multiplex не використовується.
 - `build.py` запускає його на 14 днів уперед і записує `site/data.json`.
+- `extras.py` додає до кожного фільму український трейлер (пошук YouTube), рейтинг IMDb (офіційний набір datasets.imdbws.com, ідентифікатор фільму з TMDB) і Rotten Tomatoes (через OMDb, якщо задано ключ `OMDB_API_KEY`). Сторінки IMDb і Rotten Tomatoes роботів GitHub не пускають, тому напряму їх не читаємо. Якщо трейлер не знайдено, значок YouTube веде на пошук трейлера.
 - `.github/workflows/update.yml` кожні 2 години (і після кожного Merge у `main`) запускає `build.py` і публікує папку `site/` на GitHub Pages.
 - `site/` це сам застосунок: шукає по `data.json` у браузері, тому відповідає миттєво і працює офлайн з останнім завантаженим розкладом.
 - Якщо щось потребує уваги (кінотеатр не відповідає, фільм без українського опису, розклад давно не оновлювався), у застосунку зʼявляється знак «!», який відкриває сторінку з деталями. Окремий крок робота не дає GitHub вимкнути розклад через 60 днів без змін у репозиторії.
@@ -22,6 +23,7 @@
 
 1. Settings → Pages → Source: **GitHub Actions**.
 2. Settings → Secrets and variables → Actions → New repository secret: `TMDB_API_KEY` (ключ TMDB для українських назв і описів).
+   Для рейтингу Rotten Tomatoes ще `OMDB_API_KEY`: безкоштовний ключ з https://www.omdbapi.com/apikey.aspx (тариф FREE, ключ приходить на пошту, його треба активувати посиланням з листа). Без нього Rotten Tomatoes просто не показується.
 3. Actions → «Оновити розклад» → Run workflow. Адреса застосунку зʼявиться в результаті запуску.
 
 ## Встановити як застосунок

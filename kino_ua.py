@@ -637,12 +637,20 @@ def load_translations():
 POOL = cf.ThreadPoolExecutor(32)  # потоки не чекаємо: після виводу процес завершується
 
 
-def collect(day, full=False):
+def collect(day, full=False, reuse=0):
     """Збирає сеанси з усіх джерел паралельно й групує їх за фільмами.
     full: перехресно перевірити всі кінотеатри через Filmweb (+~1 с).
+    reuse: секунд, протягом яких вдалий розклад джерела на цей день береться з кешу без запиту.
     Повертає (фільми, помилки, чи всі джерела відповіли)."""
     shows, errors, complete = [], [], True
-    jobs = [(name, fn) for name, fn in SOURCES]
+    jobs = []
+    for name, fn in SOURCES:
+        with _cache_lock:
+            old = _load_cache().get("source", {}).get(f"{name}|{day}")
+        if reuse and old and _time.time() - old[0] < reuse:
+            shows += old[1]
+        else:
+            jobs.append((name, fn))
     if full:
         jobs.append(("Filmweb", lambda d: filmweb_pages(d, list(FW_CINEMAS))))
     futs = {POOL.submit(fn, day): name for name, fn in jobs}

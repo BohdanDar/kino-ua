@@ -48,6 +48,7 @@ jobs:
       - name: Зібрати сеанси на 14 днів
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
         run: python3 build.py 14
 
       # нова адреса app.js/style.css з кожною версією: браузер не візьме стару копію зі свого кешу
@@ -83,3 +84,20 @@ jobs:
     steps:
       - name: Не дати GitHub вимкнути розклад
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/update.yml/enable"
+
+  # Кожен запуск зберігає памʼять робота (кеш) під новою назвою; старі копії не потрібні,
+  # тож лишаємо лише найсвіжішу, щоб список кешів у Actions → Caches не розростався.
+  tidy-cache:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      REF: ${{ github.ref }}
+    steps:
+      - name: Видалити старі копії кешу
+        run: |
+          gh cache list -R "$REPO" --key kino-cache- --ref "$REF" --sort created_at --order desc \
+            --limit 100 --json id --jq '.[1:][].id' | xargs -r -n1 gh cache delete -R "$REPO"

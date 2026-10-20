@@ -12,12 +12,16 @@ import sys
 import time
 import urllib.request
 
+import extras
 import kino_ua as k
 
 DAYS = int(sys.argv[1]) if len(sys.argv) > 1 else 14
+# Розклад далі ніж на тиждень майже не змінюється: ці дні питаємо в кінотеатрів раз на ~6 годин
+# (робот запускається кожні 2 години, тож беремо кеш, молодший за 5,5 год), а не щозапуску.
+NEAR_DAYS, FAR_REUSE = 7, 5.5 * 3600
 OUT = os.path.join(k.HERE, "site", "data.json")
 FILM_FIELDS = ("key", "title", "title_uk", "original", "year", "minutes", "genres",
-               "url", "poster", "synopsis", "translated")
+               "poster", "synopsis", "translated")
 
 
 def previous_first_seen():
@@ -44,7 +48,7 @@ def main():
     films, errors = {}, {}
     for i in range(DAYS):
         day = today + dt.timedelta(days=i)
-        day_films, day_errors, _ = k.collect(day)
+        day_films, day_errors, _ = k.collect(day, reuse=FAR_REUSE if i >= NEAR_DAYS else 0)
         if day_errors:
             errors[str(day)] = day_errors
         for f in day_films:
@@ -66,6 +70,7 @@ def main():
         g["first_seen"] = prev.get(key, stamp) if prev is not None else None
         if g["first_seen"]:
             k.cached("first_seen", key, 0, lambda v=g["first_seen"]: v)
+    extras.add(list(films.values()))
     k.save_cache()
     for g in films.values():
         g["shows"].sort(key=lambda s: (s["date"], s["time"]))
@@ -83,7 +88,10 @@ def main():
         for day, errs in errors.items():
             print(f"::warning title=Не вдалося перевірити {day}::{'; '.join(errs)}")
         print(f"::notice title=Розклад::{len(films)} фільмів, "
-              f"{sum(len(g['shows']) for g in films.values())} сеансів; без перекладу: {untranslated or 'немає'}")
+              f"{sum(len(g['shows']) for g in films.values())} сеансів; без перекладу: {untranslated or 'немає'}; "
+              f"трейлерів {sum(bool(g['trailer']) for g in films.values())}, "
+              f"IMDb {sum(bool(g['imdb_rating']) for g in films.values())}, "
+              f"Rotten Tomatoes {sum(bool(g['rt']) for g in films.values())}")
     print(f"Готово за {time.time() - t0:.1f} с: {len(films)} фільмів, "
           f"{sum(len(g['shows']) for g in films.values())} сеансів; без перекладу: {untranslated}")
     sys.stdout.flush()
