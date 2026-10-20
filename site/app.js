@@ -13,6 +13,7 @@ const STOP = new Set(["з", "із", "від", "по", "до", "у", "в", "на"
 
 let DATA = null;
 let SHOWN = [];  // фільми на екрані: з них беремо сеанси для «Поділитися»
+let SHOWN_LABEL = "";  // підпис дат пошуку («22–24 жовтня») для «Поділитися списком»
 let NEWS = { since: null, keys: new Set() };  // фільми, що зʼявилися після минулого відкриття на цьому пристрої
 
 // ---------------------------------------------------------------- дати
@@ -300,15 +301,42 @@ function card(f, today, multiDay) {
       : link ? `<a class="show" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${inner}<span class="buy">Квитки →</span></a>`
         : `<div class="show">${inner}<span class="buy"></span></div>`);
   }
-  const url = safeUrl(f.url);
-  const title = (url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(f.title)}</a>` : esc(f.title)) +
-    (NEWS.keys.has(f.key) ? '<span class="tag">Новинка</span>' : "");
+  const title = esc(f.title) + (NEWS.keys.has(f.key) ? '<span class="tag">Новинка</span>' : "");
   const meta = filmMeta(f);
   const uk = f.title_uk && f.title_uk.toLowerCase() !== f.title.toLowerCase() ? `<p class="uk">${esc(f.title_uk)}</p>` : "";
-  return `<article class="film"><h2>${title}</h2>${uk}${meta ? `<p class="meta">${esc(meta)}</p>` : ""}` +
+  const rates = ratings(f);
+  return `<article class="film">${actions(f)}<h2>${title}</h2>${uk}` +
+    (meta || rates ? `<div class="meta">${rates}${meta ? `<span>${esc(meta)}</span>` : ""}</div>` : "") +
     `<p class="syn${f.translated ? "" : " pl"}">${esc(f.synopsis || "Опису поки немає.")}</p>` +
-    `<div class="shows">${rows.join("")}</div>` +
-    `<button class="share" data-share="${esc(f.key)}">Поділитися</button></article>`;
+    `<div class="shows">${rows.join("")}</div></article>`;
+}
+
+const SHARE_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+const YT_ICON = '<svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>';
+
+// Рейтинги перед жанрами; посилання ведуть на сторінки рейтингів
+function ratings(f) {
+  const imdb = /^tt\d+$/.test(f.imdb || "") ? f.imdb : "";
+  const rates = [];
+  if (imdb && f.imdb_rating) {
+    rates.push(`<a class="rate imdb" href="https://www.imdb.com/title/${imdb}/" target="_blank" rel="noopener noreferrer" ` +
+      `title="Рейтинг IMDb"><b>IMDb</b>${esc(f.imdb_rating)}</a>`);
+  }
+  if (f.rt) {
+    const q = encodeURIComponent(f.original || f.title);
+    rates.push(`<a class="rate rt" href="https://www.rottentomatoes.com/search?search=${q}" target="_blank" rel="noopener noreferrer" ` +
+      `title="Rotten Tomatoes: частка позитивних рецензій критиків"><span aria-hidden="true">🍅</span>${esc(f.rt)}</a>`);
+  }
+  return rates.join("");
+}
+
+// Правий верхній кут картки: трейлер українською й «Поділитися»
+function actions(f) {
+  const yt = /^[\w-]{11}$/.test(f.trailer || "")
+    ? `https://www.youtube.com/watch?v=${f.trailer}`
+    : "https://www.youtube.com/results?search_query=" + encodeURIComponent(`${f.title_uk || f.original || f.title} трейлер українською`);
+  return `<div class="acts"><a class="icon" href="${esc(yt)}" target="_blank" rel="noopener noreferrer" aria-label="Трейлер українською на YouTube" title="Трейлер українською">${YT_ICON}</a>` +
+    `<button class="icon share" data-share="${esc(f.key)}" aria-label="Поділитися фільмом" title="Поділитися">${SHARE_ICON}</button></div>`;
 }
 
 function render() {
@@ -322,6 +350,8 @@ function render() {
   const summary = films.length ? `${plural(films.length, "фільм", "фільми", "фільмів")}, ${plural(nShows, "сеанс", "сеанси", "сеансів")}` : "";
   document.getElementById("sub").textContent =
     [label && label[0].toUpperCase() + label.slice(1), terms.length ? `«${terms.join(" ")}»` : "", summary].filter(Boolean).join(" · ");
+  SHOWN_LABEL = label;
+  document.getElementById("share-all").hidden = !films.some(f => f.shows.some(s => !s.started));
   let html = (note ? `<p class="empty">${esc(note)}</p>` : "") + films.map(f => card(f, now.date, multiDay)).join("");
   if (!films.length) {
     const next = [...new Set(DATA.films.flatMap(f => f.shows.map(s => s.date)))].filter(d => d >= ranges[0][0]).sort().slice(0, 4);
@@ -479,26 +509,56 @@ document.addEventListener("click", e => {
   const b = e.target.closest("button[data-q]");
   if (b) setQuery(b.dataset.q);
   const sh = e.target.closest("button[data-share]");
-  if (sh) share(sh);
+  if (sh) shareFilm(sh.dataset.share);
+  if (e.target.closest("#share-all")) shareAll();
 });
 
-// «Поділитися»: назва й сеанси з екрана; на телефоні системне меню, на компі копія в буфер
-async function share(btn) {
-  const f = SHOWN.find(x => x.key === btn.dataset.share);
+// «Поділитися»: назви й сеанси з екрана; на телефоні системне меню, на компі копія в буфер
+const filmName = f => f.title_uk && f.title_uk !== f.title ? `${f.title_uk} (${f.title})` : f.title;
+const appUrl = q => location.origin + location.pathname + (q ? "?q=" + encodeURIComponent(q) : "");
+
+async function shareFilm(key) {
+  const f = SHOWN.find(x => x.key === key);
   if (!f) return;
   const today = warsawNow().date;
-  const lines = [f.title_uk && f.title_uk !== f.title ? `${f.title_uk} (${f.title})` : f.title, ""];
+  const lines = [filmName(f), ""];
   for (const s of f.shows.filter(s => !s.started)) {
     lines.push(`${dayLabel(s.date, today)}, ${s.time}, ${s.cinema}${safeUrl(s.link) ? ": " + s.link : ""}`);
   }
-  const text = lines.join("\n").trim();
-  const url = location.origin + location.pathname + "?q=" + encodeURIComponent(f.title_uk || f.title);
+  await share(f.title_uk || f.title, lines.join("\n").trim(), appUrl(f.title_uk || f.title));
+}
+
+// Увесь пошук: кожен фільм і його сеанси по днях, без посилань на квитки (вони за посиланням на застосунок)
+async function shareAll() {
+  const head = "Кіно українською у Вроцлаві" + (SHOWN_LABEL ? `, ${SHOWN_LABEL}` : "");
+  const blocks = [];
+  for (const f of SHOWN) {
+    const byDay = new Map();
+    for (const s of f.shows.filter(s => !s.started)) {
+      (byDay.get(s.date) || byDay.set(s.date, []).get(s.date)).push(`${s.time} ${s.cinema}`);
+    }
+    if (!byDay.size) continue;
+    // без «сьогодні/завтра»: повідомлення можуть прочитати й наступного дня
+    blocks.push([filmName(f), ...[...byDay].map(([d, list]) => `${dayLabel(d, "")}: ${list.join(", ")}`)].join("\n"));
+  }
+  if (!blocks.length) return;
+  await share(head, [head, ...blocks].join("\n\n"), appUrl(document.getElementById("q").value.trim()));
+}
+
+async function share(title, text, url) {
   try {
-    if (navigator.share) return await navigator.share({ title: f.title_uk || f.title, text, url });
+    if (navigator.share) return await navigator.share({ title, text, url });
     await navigator.clipboard.writeText(text + "\n\n" + url);
-    btn.textContent = "Скопійовано";
-    setTimeout(() => { btn.textContent = "Поділитися"; }, 2000);
+    toast("Скопійовано, можна вставити в повідомлення");
   } catch (e) { /* користувач закрив меню */ }
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { t.hidden = true; }, 2500);
 }
 
 // Відкритий застосунок щохвилини оновлює «вже почався», а після повернення на екран бере свіжий розклад
