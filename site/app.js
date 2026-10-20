@@ -409,7 +409,9 @@ function demoData() {
   DATA.errors = { [today]: ["Helios: HTTP Error 503: Service Unavailable", "Multikino: timed out, показано дані з 10:17"],
     [addDays(today, 1)]: ["Helios: HTTP Error 503: Service Unavailable"] };
   DATA.generated_at = new Date(Date.now() - 7 * 36e5).toISOString();
+  if (document.getElementById("demo-bar")) return;  // свіжий розклад після повернення на вкладку: напис уже є
   const bar = document.createElement("p");
+  bar.id = "demo-bar";
   bar.className = "err";
   bar.innerHTML = 'Демо-режим: новинки й проблеми тут вигадані. <a href="./">Вийти з демо</a>';
   document.querySelector(".wrap").prepend(bar);
@@ -473,7 +475,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 async function refresh() {
   try {
     const r = await fetch("data.json", { cache: "no-cache" });
-    if (r.ok) { DATA = await r.json(); footer(); }
+    if (r.ok) { DATA = await r.json(); if (DEMO) demoData(); footer(); }
   } catch (e) { /* офлайн: лишаємо, що є */ }
   render();
   renderStatus();
