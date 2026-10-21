@@ -113,7 +113,7 @@ function parseQuery(raw, today) {
   const found = [...q.matchAll(POINT)].map(m => ({ m, at: m.index, end: m.index + m[0].length, v: pointDates(m, today) }));
   const pts = found.filter(p => p.v);
   let rest = q;
-  const bad = [];  // дати, яких немає в календарі («31.02»): пропускаємо з приміткою
+  const bad = [];  // дати, яких немає в календарі («31.02»): search тоді показує порожній результат із приміткою
   for (const p of found.filter(p => !p.v)) {
     bad.push(p.m[0].trim());
     rest = rest.slice(0, p.at) + " ".repeat(p.end - p.at) + rest.slice(p.end);
@@ -269,8 +269,11 @@ function search(raw) {
     return { films, ranges, terms: [raw.trim()], now, note: "", explicit: false };
   }
   let { ranges, terms, times, after, bad } = parseQuery(raw, now.date);
+  // неіснуюча дата («41», «31.02»): нічого не показуємо, а пояснюємо, бо будь-яка заміна була б здогадкою
+  if (bad.length) return { films: [], ranges: [[now.date, lastDay()]], terms: [raw.trim()], now,
+    note: `${bad.length > 1 ? "Дат" : "Дати"} ${bad.map(b => `«${b}»`).join(", ")} немає в календарі.`, explicit: false };
   terms = terms.map(norm);
-  let note = bad.length ? `Дати ${bad.map(b => `«${b}»`).join(", ")} немає в календарі, тож пропускаю її. ` : "";
+  let note = "";
   // слово, якого немає в розкладі взагалі («наступна», «ввечері»), не повинно ховати все інше;
   // але якщо запит лише з таких слів, лишаємо «не знайдено»
   const unknown = terms.filter(t => !inSchedule(t));
