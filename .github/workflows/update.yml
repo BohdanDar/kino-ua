@@ -5,7 +5,8 @@ name: Оновити розклад
 
 on:
   schedule:
-    - cron: "17 */2 * * *"
+    # хвилина 43: подалі від початку години, коли GitHub найбільше пропускає запусків
+    - cron: "43 */2 * * *"
   push:
     branches: [main]
   workflow_dispatch:
