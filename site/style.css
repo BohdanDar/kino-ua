@@ -26,9 +26,10 @@ h1{font:600 clamp(20px,5vw,28px)/1.15 var(--display);margin:0;letter-spacing:-.0
 #q{padding-right:48px}
 #q::-webkit-search-cancel-button{display:none}
 /* свій хрестик: видно, поки в полі є текст, навіть без фокусу (вбудований браузерний ховається) */
-#clear{position:absolute;top:0;right:0;width:48px;height:100%;border:0;background:none;color:var(--mute);
+#clear{position:absolute;top:0;right:0;width:48px;height:100%;border:0;background:none;color:var(--blue);
   font:400 26px/1 var(--display);cursor:pointer;border-radius:0 12px 12px 0}
 #clear:hover{color:var(--ink)}
+#clear:focus-visible{outline:2px solid var(--blue);outline-offset:-4px}
 #q:placeholder-shown+#clear{display:none}
 #q:focus{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 25%,transparent)}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
