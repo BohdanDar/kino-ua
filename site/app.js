@@ -628,6 +628,9 @@ setInterval(() => {
   const begun = SHOWN.some(f => f.shows.some(s => !s.started && (s.date < now.date || (s.date === now.date && s.time <= now.time))));
   if (begun) keepFocus(render);
   renderStatus();
+  // Вкладка весь час на екрані: новий розклад чекаємо через 2 год 5 хв після попереднього
+  // (робот запускається щодві години), а якщо GitHub запізнюється, refresh пробує раз на 10 хвилин
+  if (Date.now() - new Date(DATA.generated_at) > 125 * 60 * 1000) refresh(true);
 }, 60 * 1000);
 
 // Перемальовує, зберігаючи фокус на тій самій кнопці чи посиланні картки
@@ -641,11 +644,14 @@ function keepFocus(fn) {
 // Розклад робот оновлює раз на 2 години, тож повторно качаємо його не частіше, ніж раз на 10 хвилин
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && DATA) refresh(); });
 let FETCHED = Date.now();
-async function refresh() {
+async function refresh(onlyIfNew) {
+  const was = DATA.generated_at;
   if (Date.now() - FETCHED > 10 * 60 * 1000) try {
+    FETCHED = Date.now();
     const r = await fetch("data.json", { cache: "no-cache" });
-    if (r.ok) { DATA = await r.json(); FETCHED = Date.now(); if (DEMO) demoData(); footer(); }
+    if (r.ok) { DATA = await r.json(); if (DEMO) demoData(); footer(); }
   } catch (e) { /* офлайн: лишаємо, що є */ }
+  if (onlyIfNew && DATA.generated_at === was) return;
   keepFocus(render);
   renderStatus();
 }
