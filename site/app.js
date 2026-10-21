@@ -628,9 +628,8 @@ setInterval(() => {
   const begun = SHOWN.some(f => f.shows.some(s => !s.started && (s.date < now.date || (s.date === now.date && s.time <= now.time))));
   if (begun) keepFocus(render);
   renderStatus();
-  // Вкладка весь час на екрані: новий розклад чекаємо через 2 год 5 хв після попереднього
-  // (робот запускається щодві години), а якщо GitHub запізнюється, refresh пробує раз на 10 хвилин
-  if (Date.now() - new Date(DATA.generated_at) > 125 * 60 * 1000) refresh(true);
+  // Вкладка весь час на екрані: раз на 10 хвилин питаємо, чи є новий розклад (refresh сам стежить за інтервалом)
+  refresh(true);
 }, 60 * 1000);
 
 // Перемальовує, зберігаючи фокус на тій самій кнопці чи посиланні картки
