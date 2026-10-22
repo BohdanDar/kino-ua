@@ -1,4 +1,4 @@
-// Кіно українською: шукає по data.json, який GitHub Actions оновлює кожні 2 години.
+// Кіно українською: шукає по data.json, який GitHub Actions оновлює щогодини.
 "use strict";
 
 const UK_DAYS = ["неділя", "понеділок", "вівторок", "середа", "четвер", "пʼятниця", "субота"];
@@ -426,7 +426,7 @@ function problems() {
   const ageH = (Date.now() - new Date(DATA.generated_at)) / 36e5;
   if (ageH > 5) {
     out.push({ level: "bad", title: `Розклад не оновлювався ${Math.floor(ageH)} год`,
-      text: "Робот мав запускатися кожні 2 години. Можливо, GitHub його вимкнув або він падає. Напишіть Claude у проєкті." });
+      text: "Робот мав запускатися щогодини. Можливо, GitHub його вимкнув або він падає. Напишіть Claude у проєкті." });
   }
   const bySource = {};
   for (const [day, errs] of Object.entries(DATA.errors || {})) {
@@ -643,7 +643,7 @@ function keepFocus(fn) {
   fn();
   if (sel) document.querySelector(`#out ${sel}`)?.focus();
 }
-// Розклад робот оновлює раз на 2 години, тож повторно качаємо його не частіше, ніж раз на 10 хвилин
+// Розклад робот оновлює щогодини (на ділі рідше), тож повторно качаємо його не частіше, ніж раз на 10 хвилин
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && DATA) refresh(); });
 let FETCHED = Date.now();
 async function refresh(onlyIfNew) {

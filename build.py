@@ -17,7 +17,7 @@ import kino_ua as k
 
 DAYS = int(sys.argv[1]) if len(sys.argv) > 1 else 14
 # Розклад далі ніж на тиждень майже не змінюється: ці дні питаємо в кінотеатрів раз на ~6 годин
-# (робот запускається кожні 2 години, тож беремо кеш, молодший за 5,5 год), а не щозапуску.
+# (робот запускається щогодини, тож беремо кеш, молодший за 5,5 год), а не щозапуску.
 NEAR_DAYS, FAR_REUSE = 7, 5.5 * 3600
 OUT = os.path.join(k.HERE, "site", "data.json")
 FILM_FIELDS = ("key", "title", "title_uk", "original", "year", "minutes", "genres",
