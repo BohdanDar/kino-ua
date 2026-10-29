@@ -38,6 +38,12 @@ UA_HEADERS = {
 # Ознаки українського сеансу в назвах і атрибутах. Короткі коди лише великими
 # літерами, щоб не ловити випадкові "ua" у тексті.
 UA_TEXT = re.compile(r"(?i:ukrai|ukraï|ukrain|українськ)|\bUA\b|\bUKR?\b")
+# Позначка української версії в кінці назви: "- UA", "(UKR)", "ukraiński dubbing",
+# "wersja ukraińska", "| dubbing UA"... Слово "Ukraina" саме по собі не позначка.
+UA_SUFFIX = re.compile(
+    r"\s*[-–|,(\[]?\s*(?:(?:wersja|dubbing|napisy|lektor)\s+)?"
+    r"\b(?:UA|UKR|ukraiń\w*|ukrainian|ukraïn\w*|українськ\w*)"
+    r"(?:\s+(?:dubbing|napisy|lektor|wersja|version|dub)\w*)?\s*[)\]]?\s*$", re.I)
 
 
 def now():
@@ -180,7 +186,7 @@ def hhmm(t):
 
 def show(cinema, title, time, version, link, note="", about=""):
     """Один сеанс. about: сторінка фільму, звідки можна взяти опис."""
-    return {"cinema": cinema, "title": title, "time": hhmm(time), "version": version,
+    return {"cinema": cinema, "title": cc_clean_title(title), "time": hhmm(time), "version": version,
             "link": link, "note": note, "about": about}
 
 
@@ -232,8 +238,7 @@ CC_VERSION = {"dubbed-lang-uk": "дубляж UA", "subbed-lang-uk": "субти
 
 def cc_clean_title(name):
     # "Verity. Coraz większy mrok ukraiński dubbing" -> "Verity. Coraz większy mrok"
-    return re.sub(r"\s*[(\-–]?\s*ukrai\w*(\s+(dubbing|napisy|lektor)\w*)?\s*\)?\s*$", "",
-                  name, flags=re.I).strip()
+    return UA_SUFFIX.sub("", name).strip() or name
 
 
 def cinema_city(day):
@@ -396,13 +401,18 @@ def helios(day):
     def movie(mid):
         def load():
             m = json.loads(fetch(f"{HELIOS_API}/movie/{mid}"))
-            return {k: m.get(k) for k in ("title", "onlineTitle", "shortDescription", "description")}
+            return {k: m.get(k) for k in ("title", "onlineTitle", "originalTitle",
+                                          "shortDescription", "description")}
         try:
-            return mid, cached("helios_movie", mid, MONTH, load)
+            return mid, cached("helios_movie2", mid, MONTH, load)  # 2: з originalTitle
         except Exception:
             return mid, {}
     with cf.ThreadPoolExecutor(12) as ex:
         movies = dict(ex.map(movie, {s.get("movieId") for _, s in screenings}))
+    # Українська версія інколи окремий фільм з транслітом: "Hlynolykyi - UA" (оригінал
+    # "Clayface"). Назву тоді беремо з польської версії того ж фільму або оригінальну.
+    polish = {m.get("originalTitle"): m.get("title") for m in movies.values()
+              if m.get("originalTitle") and not UA_SUFFIX.search(m.get("title") or "")}
     out = []
     for name, s in screenings:
         m = movies.get(s.get("movieId")) or {}
@@ -412,12 +422,16 @@ def helios(day):
                            "onlineRelease", "movieSubPrintLabel"))
         if not UA_TEXT.search(fields + " " + title):
             continue
+        original = m.get("originalTitle") or ""
+        if UA_SUFFIX.search(title) and original:
+            title = polish.get(original) or original
         kind = str(s.get("speakingType", "")).lower()
         version = "субтитри UA" if "nap" in kind else "дубляж UA" if "dub" in kind \
             else "українською (див. деталі)"
         x = show(name, cc_clean_title(title), s["screeningTimeFrom"][11:16],
                  version, HELIOS_SITE, s.get("printType") or "")
         x["synopsis"] = short(m.get("shortDescription") or m.get("description") or "")
+        x["original"] = original
         out.append(x)
     return out
 
@@ -546,6 +560,12 @@ def _pk_movie(original):
 # його саме. Опис українською буває порожнім для нішевих фільмів.
 TMDB = "https://api.themoviedb.org/3"
 CYRILLIC = re.compile("[\u0400-\u04ff]")
+
+
+def is_ukrainian(text):
+    """Текст переважно кирилицею (а не польський опис з кількома кириличними назвами)."""
+    cyr = len(CYRILLIC.findall(text))
+    return cyr > 0 and cyr > len(re.findall(r"[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]", text))
 
 
 def _tmdb_movie(title, original, year):
@@ -699,16 +719,18 @@ def collect(day, full=False, reuse=0):
             f["title"] = s["title"]
         if s.get("synopsis") and not f["synopsis"]:
             f["synopsis"] = s["synopsis"]
+        if s.get("original") and not f.get("original"):
+            f["original"] = s["original"]
         if s.get("about"):
             f["about"].append(s["about"])
-        f["shows"].append({k: v for k, v in s.items() if k not in ("about", "synopsis")})
+        f["shows"].append({k: v for k, v in s.items() if k not in ("about", "synopsis", "original")})
     # Деталі фільму: спершу Filmweb, далі сторінка фільму в самому кінотеатрі.
     for key, f in films.items():
         info = fw_info(key)
         f.update({k: info.get(k, "") or f.get(k, "") for k in
                   ("year", "minutes", "genres", "url", "poster")})
         f["synopsis"] = f["synopsis"] or info.get("synopsis", "")
-        f["original"] = info.get("original", "")
+        f["original"] = info.get("original", "") or f.get("original", "")
     ua = ukrainian_info(films)
     for key, f in films.items():
         m = ua.get(key) or {}
@@ -740,7 +762,8 @@ def collect(day, full=False, reuse=0):
         if not CYRILLIC.search(f["title_uk"]):  # TMDB без перекладу назви віддає оригінал
             f["title_uk"] = mine.get("title") or f["title_uk"]
         f["synopsis"] = f["synopsis_uk"] or mine.get("synopsis") or f["synopsis"]
-        f["translated"] = bool(f["synopsis_uk"] or mine.get("synopsis"))
+        # кінотеатр (Helios для української версії) сам може дати опис українською
+        f["translated"] = bool(f["synopsis_uk"] or mine.get("synopsis") or is_ukrainian(f["synopsis"]))
     order = sorted(films.values(),
                    key=lambda f: (all(s["started"] for s in f["shows"]), f["shows"][0]["time"]))
     return order, sorted(errors), complete
