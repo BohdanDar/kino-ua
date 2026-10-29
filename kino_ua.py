@@ -38,7 +38,12 @@ UA_HEADERS = {
 # Ознаки українського сеансу в назвах і атрибутах. Короткі коди лише великими
 # літерами, щоб не ловити випадкові "ua" у тексті.
 UA_TEXT = re.compile(r"(?i:ukrai|ukraï|ukrain|українськ)|\bUA\b|\bUKR?\b")
-UA_SUFFIX = re.compile(r"\s+[-–]\s*UA\s*$")
+# Позначка української версії в кінці назви: "- UA", "(UKR)", "ukraiński dubbing",
+# "wersja ukraińska", "| dubbing UA"... Слово "Ukraina" саме по собі не позначка.
+UA_SUFFIX = re.compile(
+    r"\s*[-–|,(\[]?\s*(?:(?:wersja|dubbing|napisy|lektor)\s+)?"
+    r"\b(?:UA|UKR|ukraiń\w*|ukrainian|ukraïn\w*|українськ\w*)"
+    r"(?:\s+(?:dubbing|napisy|lektor|wersja|version|dub)\w*)?\s*[)\]]?\s*$", re.I)
 
 
 def now():
@@ -181,7 +186,7 @@ def hhmm(t):
 
 def show(cinema, title, time, version, link, note="", about=""):
     """Один сеанс. about: сторінка фільму, звідки можна взяти опис."""
-    return {"cinema": cinema, "title": title, "time": hhmm(time), "version": version,
+    return {"cinema": cinema, "title": cc_clean_title(title), "time": hhmm(time), "version": version,
             "link": link, "note": note, "about": about}
 
 
@@ -233,8 +238,7 @@ CC_VERSION = {"dubbed-lang-uk": "дубляж UA", "subbed-lang-uk": "субти
 
 def cc_clean_title(name):
     # "Verity. Coraz większy mrok ukraiński dubbing" -> "Verity. Coraz większy mrok"
-    return re.sub(r"\s*[(\-–]?\s*ukrai\w*(\s+(dubbing|napisy|lektor)\w*)?\s*\)?\s*$", "",
-                  name, flags=re.I).strip()
+    return UA_SUFFIX.sub("", name).strip() or name
 
 
 def cinema_city(day):
@@ -421,7 +425,6 @@ def helios(day):
         original = m.get("originalTitle") or ""
         if UA_SUFFIX.search(title) and original:
             title = polish.get(original) or original
-        title = UA_SUFFIX.sub("", title)
         kind = str(s.get("speakingType", "")).lower()
         version = "субтитри UA" if "nap" in kind else "дубляж UA" if "dub" in kind \
             else "українською (див. деталі)"
