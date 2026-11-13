@@ -1,4 +1,4 @@
-// Кіно українською: шукає по data.json, який GitHub Actions оновлює щогодини.
+// Кіно українською: шукає по data.json, який GitHub Actions оновлює кілька разів на добу.
 "use strict";
 
 const UK_DAYS = ["неділя", "понеділок", "вівторок", "середа", "четвер", "пʼятниця", "субота"];
@@ -420,13 +420,16 @@ function render() {
 
 // ---------------------------------------------------------------- проблеми
 // Що потребує уваги: робот давно не оновлював розклад, кінотеатр не відповідає, фільм без перекладу.
+const STALE_H = 12;
 function problems() {
   const out = [];
   const now = warsawNow();
   const ageH = (Date.now() - new Date(DATA.generated_at)) / 36e5;
-  if (ageH > 5) {
+  // GitHub запускає робота за розкладом лише 4–5 разів на добу, з перервами до 8 годин, тож тривожимось після 12
+  if (ageH >= STALE_H) {
     out.push({ level: "bad", title: `Розклад не оновлювався ${Math.floor(ageH)} год`,
-      text: "Робот мав запускатися щогодини. Можливо, GitHub його вимкнув або він падає. Напишіть Claude у проєкті." });
+      text: "Зазвичай GitHub запускає робота 4–5 разів на добу, тож 12 годин без оновлення — це вже збій. " +
+        "Можливо, GitHub його вимкнув або він падає. Напишіть Claude у проєкті." });
   }
   const bySource = {};
   for (const [day, errs] of Object.entries(DATA.errors || {})) {
@@ -643,7 +646,7 @@ function keepFocus(fn) {
   fn();
   if (sel) document.querySelector(`#out ${sel}`)?.focus();
 }
-// Розклад робот оновлює щогодини (на ділі рідше), тож повторно качаємо його не частіше, ніж раз на 10 хвилин
+// Розклад робот оновлює кілька разів на добу, тож повторно качаємо його не частіше, ніж раз на 10 хвилин
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && DATA) refresh(); });
 let FETCHED = Date.now();
 async function refresh(onlyIfNew) {

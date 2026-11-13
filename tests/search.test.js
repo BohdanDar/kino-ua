@@ -101,4 +101,13 @@ for (const [q, range, films, extra = {}] of CASES) {
   if (errs.length) { failed++; console.log(`✗ «${q}»: ${errs.join("; ")}`); }
 }
 console.log(`${CASES.length - failed} з ${CASES.length} перевірок пошуку пройдено`);
+
+// Попередження «розклад не оновлювався»: лише після 12 годин (GitHub дає 4–5 запусків на добу)
+for (const [hours, warn] of [[1, false], [8, false], [11.9, false], [12.1, true], [30, true]]) {
+  const r = vm.runInContext(`(() => { const keep = DATA.generated_at;
+    DATA.generated_at = new Date(Date.now() - ${hours} * 36e5).toISOString();
+    const p = problems().filter(x => /не оновлювався/.test(x.title)); DATA.generated_at = keep;
+    return p.length ? p[0].title + " " + p[0].text : ""; })()`, ctx);
+  if (Boolean(r) !== warn || /щогодини/.test(r)) { failed++; console.log(`✗ ${hours} год: «${r}»`); }
+}
 process.exit(failed ? 1 : 0);
