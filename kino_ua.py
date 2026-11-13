@@ -640,6 +640,73 @@ def ukrainian_info(films):
     return out
 
 
+# Українська версія фільму інколи приходить окремим фільмом із назвою транслітом
+# («Skrudzh i dukhy Rizdva - UA» у Helios, без оригінальної назви), а польська версія
+# того ж фільму має українську назву з TMDB («Скрудж і духи Різдва»). Такі пари
+# зводимо в один фільм, порівнюючи транслітерацію української назви з латинською.
+TRANSLIT = dict(zip("абвгґдеєжзиіїйклмнопрстуфхцчшщьюяыэёъ'’ʼ",
+                    "a b v h g d e ie zh z y i i i k l m n o p r s t u f kh ts ch sh shch _ iu ia y e io _ _ _ _".split()))
+LOOSE = (("shch", "s"), ("zh", "z"), ("kh", "h"), ("ts", "c"), ("ch", "c"), ("sh", "s"),
+         ("ya", "a"), ("yu", "u"), ("ye", "e"), ("yi", "i"), ("yo", "o"),
+         ("ia", "a"), ("iu", "u"), ("ie", "e"), ("io", "o"), ("y", "i"), ("j", "i"),
+         ("g", "h"), ("w", "v"), ("x", "ks"), ("q", "k"))
+
+
+def loose_latin(text):
+    """Назва латинкою без різниці між системами транслітерації: 'Skrudzh i dukhy' ~ 'Skrudž i duchy'."""
+    t = "".join(TRANSLIT.get(c, c) for c in text.lower()).replace("_", "")
+    t = re.sub(r"[^a-z0-9]", "", t.translate(str.maketrans("ąćęłńóśźżžščřýáéí", "acelnoszzzscryaei")))
+    for a, b in LOOSE:
+        t = t.replace(a, b)
+    return re.sub(r"(.)\1+", r"\1", t)
+
+
+POLISH_LETTERS = re.compile("[ąćęłńóśźż]", re.I)
+
+
+def translit_pairs(films):
+    """{ключ фільму-трансліту: ключ фільму з тією ж українською назвою} серед films ({ключ: фільм})."""
+    import difflib
+    targets = {}
+    for key, f in films.items():
+        if CYRILLIC.search(f.get("title_uk") or ""):
+            full = f["title_uk"]
+            for name in {full, re.split(r"\s*[.:–—]\s+|\s+-\s+", full)[0]}:
+                if len(loose_latin(name)) >= 4:
+                    targets.setdefault(loose_latin(name), key)
+    pairs = {}
+    for key, f in films.items():
+        title = f.get("title") or ""
+        if key in targets.values() or CYRILLIC.search(title) or POLISH_LETTERS.search(title) \
+                or CYRILLIC.search(f.get("title_uk") or ""):
+            continue
+        mine = {loose_latin(n) for n in (title, re.split(r"\s*[.:–—]\s+|\s+-\s+", title)[0])}
+        hit = next((targets[m] for m in mine if m in targets), None)
+        if not hit:  # трохи інша транслітерація: лише для довгих назв, щоб не сплутати короткі
+            best = max(((difflib.SequenceMatcher(None, m, t).ratio(), t) for m in mine
+                        for t in targets if min(len(m), len(t)) >= 10), default=(0, ""))
+            hit = targets[best[1]] if best[0] >= 0.88 else None
+        if hit and hit != key:
+            pairs[key] = hit
+    return pairs
+
+
+def merge_translit(films, fill=()):
+    """Зливає фільми-трансліти в їхні польські версії (films: {ключ: фільм}, змінюється на місці).
+    fill: поля, які беремо з трансліту, якщо в основного фільму вони порожні."""
+    pairs = translit_pairs(films)
+    for src, dst in pairs.items():
+        a, b = films.pop(src), films[dst]
+        b["shows"] += a["shows"]
+        for x in fill:
+            if a.get(x) and not b.get(x):
+                b[x] = a[x]
+        # Helios дає опис українською саме для української версії
+        if a.get("translated") and not b.get("translated"):
+            b["synopsis"], b["translated"] = a.get("synopsis", ""), True
+    return pairs
+
+
 # Власні переклади: {ключ назви: опис} або {ключ: {"title": ..., "synopsis": ...}}. Скрипт сам не перекладає
 # (лише стандартна бібліотека), тому переклади дописує Claude у цей файл
 # перед публікацією сторінки; вони зберігаються й для наступних днів.
@@ -764,6 +831,9 @@ def collect(day, full=False, reuse=0):
         f["synopsis"] = f["synopsis_uk"] or mine.get("synopsis") or f["synopsis"]
         # кінотеатр (Helios для української версії) сам може дати опис українською
         f["translated"] = bool(f["synopsis_uk"] or mine.get("synopsis") or is_ukrainian(f["synopsis"]))
+    merge_translit(films, fill=("year", "minutes", "genres", "url", "poster", "original"))
+    for f in films.values():
+        f["shows"].sort(key=lambda s: s["time"])
     order = sorted(films.values(),
                    key=lambda f: (all(s["started"] for s in f["shows"]), f["shows"][0]["time"]))
     return order, sorted(errors), complete

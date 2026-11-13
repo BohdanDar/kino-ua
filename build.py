@@ -17,7 +17,7 @@ import kino_ua as k
 
 DAYS = int(sys.argv[1]) if len(sys.argv) > 1 else 14
 # Розклад далі ніж на тиждень майже не змінюється: ці дні питаємо в кінотеатрів раз на ~6 годин
-# (робот запускається щогодини, тож беремо кеш, молодший за 5,5 год), а не щозапуску.
+# (беремо кеш, молодший за 5,5 год), а не щозапуску.
 NEAR_DAYS, FAR_REUSE = 7, 5.5 * 3600
 OUT = os.path.join(k.HERE, "site", "data.json")
 FILM_FIELDS = ("key", "title", "title_uk", "original", "year", "minutes", "genres",
@@ -63,6 +63,9 @@ def main():
                                    "hall": k.where(s)[len(s["cinema"]):].strip(" ()"),
                                    "version": s["version"], "link": s["link"]})
         print(f"{day}: {len(day_films)} фільмів, помилок {len(day_errors)}", flush=True)
+    # один фільм, що прийшов двічі (українська версія з назвою транслітом), зводимо в один і між днями
+    for src, dst in k.merge_translit(films, fill=FILM_FIELDS).items():
+        print(f"Обʼєднано «{src}» з «{dst}» (українська назва транслітом)", flush=True)
     prev = previous_first_seen()
     stamp = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     for key, g in films.items():
